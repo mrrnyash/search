@@ -1,8 +1,13 @@
+<!DOCTYPE html>
 <html>
     <head>
-        <title>{{ title }} - Bibliosearch</title>
+        <title>{{ title }} - Searchbsu</title>
     </head>
     <body>
-        <h1>Hello, {{ user.username }}!</h1>
+        <form action="/search" method="POST">
+            {{ form.csrf_token }}
+            {{ form.request }}
+            {{ form.submit }}
+        </form>
     </body>
 </html>
