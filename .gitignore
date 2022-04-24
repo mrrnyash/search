@@ -30,3 +30,7 @@ env.bak/
 venv.bak/
 # Data files examples for testing
 data/
+
+# My stuff
+test_script.py
+test_db.py
