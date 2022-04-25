@@ -1,13 +1,22 @@
 from pymarc import MARCReader
 from app.models import *
 from app import db
+from chardet import detect
+
+
 
 class DataProcessor():
 
-    def preprocess_data(self, imput_data):
-        pass
+    # Get file encoding type
+    def get_encoding_type(self, file):
+        with open(file, 'rb') as f:
+            rawdata = f.read()
+        return detect(rawdata)['encoding']
 
     def process_data(self, input_data):
+
+        file_encoding = self.get_encoding_type(input_data)
+
         fetched_data = dict.fromkeys(['title',
                                 'publishing_year',
                                 'description',
@@ -25,7 +34,7 @@ class DataProcessor():
                                 'publisher'])
 
         with open(input_data, 'rb') as fh:
-                  reader = MARCReader(fh, to_unicode=True, force_utf8=True)
+                  reader = MARCReader(fh, file_encoding=file_encoding)
                   for record in reader:
 
                       record_table = Record()
@@ -67,7 +76,6 @@ class DataProcessor():
                           fetched_data['isbn'] = str(record['010']['a'])
                           record_table.isbn=fetched_data['isbn']
 
-                    # NOTE Do we need this column? 
                       if record['011'] is not None and record['011']['a'] is not None:
                           fetched_data['issn'] = str(record['011']['a'])
                           record_table.issn=fetched_data['issn']
