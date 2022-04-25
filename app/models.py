@@ -9,7 +9,7 @@ class User(db.Model):
     username = db.Column(db.String(64), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(128))
-    role_id = db.Column(db.Integer, db.ForeignKey('user_role.id'))
+    user_role_id = db.Column(db.Integer, db.ForeignKey('user_role.id', onupdate="CASCADE", ondelete="RESTRICT"))
     role = db.relationship('UserRole', back_populates='users')
     
     def __repr__(self):
@@ -28,32 +28,32 @@ class UserRole(db.Model):
 
 
 # Association table for Many to many relationship
-records_authors = db.Table('records_authors', db.metadata,
-    db.Column('author_id', db.Integer, db.ForeignKey('author.id'), primary_key=True),
-    db.Column('record_id', db.Integer, db.ForeignKey('record.id'), primary_key=True)
+record_author_assoc_table = db.Table('records_authors', db.metadata,
+    db.Column('author_id', db.Integer, db.ForeignKey('author.id', onupdate="CASCADE", ondelete="RESTRICT"), primary_key=True),
+    db.Column('record_id', db.Integer, db.ForeignKey('record.id', onupdate="CASCADE", ondelete="RESTRICT"), primary_key=True)
 )
 
 # Parent table
 class Record(db.Model):
     __tablename__ = 'record'
     id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(255), nullable=False)
+    title = db.Column(db.Text)
     publishing_year = db.Column(db.SmallInteger())
     description = db.Column(db.Text)
     cover = db.Column(db.String(255), unique=True)
-    isbn_issn = db.Column(db.String(17), index=True, unique=True)
-    pages = db.Column(db.SmallInteger)
+    isbn = db.Column(db.String(255), index=True)
+    issn = db.Column(db.String(255), index=True)
+    pages = db.Column(db.String(20))
     url = db.Column(db.String(255), unique=True)
-    udk = db.Column(db.String(255), index=True, unique=True)
-    bbk = db.Column(db.String(255), index=True, unique=True)
+    udc = db.Column(db.String(255), index=True)
+    bbk = db.Column(db.String(255), index=True)
     bibliographic_description = db.Column(db.Text)
-    database_id = db.Column(db.Integer, db.ForeignKey('database.id'),
-                nullable=False)
-    doctype_id = db.Column(db.Integer, db.ForeignKey('doctype.id'))
-    publisher_id = db.Column(db.Integer, db.ForeignKey('publisher.id'))
+    database_id = db.Column(db.Integer, db.ForeignKey('database.id', onupdate="CASCADE", ondelete="RESTRICT"))
+    doctype_id = db.Column(db.Integer, db.ForeignKey('doctype.id', onupdate="CASCADE", ondelete="RESTRICT"))
+    publisher_id = db.Column(db.Integer, db.ForeignKey('publisher.id', onupdate="CASCADE", ondelete="RESTRICT"))
 
     # Many to many relationship
-    authors = db.relationship('Author', secondary=records_authors, lazy='subquery',
+    authors = db.relationship('Author', secondary=record_author_assoc_table, lazy='subquery',
         back_populates='author_records', uselist=True)
 
     # Many to one relationships
@@ -70,8 +70,8 @@ class Author(db.Model):
     __tablename__ = 'author'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), index=True, nullable=False)
-    author_records = db.relationship('Record', secondary=records_authors,  
-            back_populates='authors', lazy='subquery')
+    author_records = db.relationship('Record', secondary=record_author_assoc_table,  
+            back_populates='authors', lazy='subquery', uselist=True)
     
     def __repr__(self):
         return '<Author {}>'.format(self.name)
@@ -80,7 +80,7 @@ class Author(db.Model):
 class Database(db.Model):
     __tablename__ = 'database'
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), index=True, nullable=False)
+    name = db.Column(db.String(100), index=True, unique=True, nullable=False)
     database_records = db.relationship('Record', back_populates='database')
     
     def __repr__(self):
