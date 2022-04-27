@@ -32,6 +32,4 @@ venv.bak/
 data/
 
 # My stuff
-test_parse.py
-test_db.py
-test_output*.txt
+test.py

@@ -3,151 +3,328 @@ from app.models import *
 from app import db
 from chardet import detect
 
-
-
 class DataProcessor():
 
+    def process_data(self, input_data, source_database):
+        if source_database == 0:
+            self._process_data_lan(input_data)
+        elif source_database == 1:
+            self._process_data_rucont(input_data)
+        else:
+            self._process_data_urait(input_data) 
+
     # Get file encoding type
-    def get_encoding_type(self, file):
+    def _get_encoding_type(self, file):
         with open(file, 'rb') as f:
             rawdata = f.read()
         return detect(rawdata)['encoding']
 
-    def process_data(self, input_data):
-
-        file_encoding = self.get_encoding_type(input_data)
-
-        fetched_data = dict.fromkeys(['title',
-                                'publishing_year',
-                                'description',
-                                'cover',
-                                'isbn',
-                                'issn',
-                                'pages',
-                                'url',
-                                'udc',
-                                'bbk',
-                                'bibliographic_description',
-                                'authors',
-                                'database',
-                                'doctype',
-                                'publisher'])
-
+    def insert_source_databases(self):
+        source_dbs = []
+        for i in range(3):
+            source_dbs.append(Database())
+        source_dbs[0].name = 'ЭБС Лань'
+        source_dbs[1].name = 'ЭБС РУКОНТ'
+        source_dbs[2].name = 'ЭБС ЮРАЙТ'
+        for i in range(len(source_dbs)):
+            db.session.add(source_dbs[i])
+        db.session.commit()
+            
+    def _process_data_lan(self, input_data):
+        file_encoding = self._get_encoding_type(input_data)
+        # It is assumed that source databases names are already in the database 
+        source_database = db.session.query(Database).filter_by(name='ЭБС Лань').scalar()
         with open(input_data, 'rb') as fh:
-                  reader = MARCReader(fh, file_encoding=file_encoding)
-                  for record in reader:
-
-                      record_table = Record()
-                      doctype = Doctype()
-                      publisher = Publisher()
-                      database = Database()
-
-                      if record['200'] is not None: 
-                          if record['200']['a'] is not None:
-                              fetched_data['title'] = str(record['200']['a'])
-                              record_table.title=fetched_data['title']
-                          if record['200']['b'] is not None:
-                              fetched_data['doctype'] = str(record['200']['b'])
-                              doctype = db.session.query(Doctype).filter_by(name=fetched_data['doctype']).scalar()
-                              if doctype is not None:
-                                  db.session.add(doctype)
-                                  record_table.doctype.append(doctype)
-                              else:
-                                  doctype = Doctype(name=fetched_data['doctype'])
-                                  record_table.doctype.append(doctype)
-                                  db.session.add(doctype)
-
-                      if record['210'] is not None and record['210']['d'] is not None:
-                          fetched_data['publishing_year'] = int(record['210']['d'])
-                          record_table.publishing_year=fetched_data['publishing_year']
-                          
-
-                      if record['330'] is not None and record['330']['a'] is not None:
-                          fetched_data['description'] = str(record['330']['a'])
-                          record_table.description=fetched_data['description']
-                            
-
-                      if record['953'] is not None and record['953']['a'] is not None:
-                          fetched_data['cover'] = str(record['953']['a'])
-                          record_table.cover=fetched_data['cover']
-                            
-
-                      if record['010'] is not None and record['010']['a'] is not None:
-                          fetched_data['isbn'] = str(record['010']['a'])
-                          record_table.isbn=fetched_data['isbn']
-
-                      if record['011'] is not None and record['011']['a'] is not None:
-                          fetched_data['issn'] = str(record['011']['a'])
-                          record_table.issn=fetched_data['issn']
-                            
-
-                      if record['215'] is not None and record['215']['a'] is not None:
-                          fetched_data['pages'] = str(record['215']['a'])
-                          record_table.pages=fetched_data['pages']
-                            
-
-                      if record['856'] is not None and record['856']['u'] is not None:
-                          fetched_data['url'] = str(record['856']['u'])
-                          record_table.url=fetched_data['url']
-                            
-
-                      if record['675'] is not None and record['675']['a'] is not None:
-                          fetched_data['udc'] = str(record['675']['a'])
-                          record_table.udc=fetched_data['udc']
-                            
-
-                      if record['686'] is not None and record['686']['a'] is not None:
-                          fetched_data['bbk'] = str(record['686']['a'])
-                          record_table.bbk=fetched_data['bbk']
-                            
-
-                      if record['700'] is not None:
-                          fetched_data['authors'] = str(record['700']['a']) + ' ' + str(record['700']['b'])
-                          author_1 = Author(name=fetched_data['authors'])
-                          record_table.authors.append(author_1)
-                          db.session.add(author_1)
-                         
-                          if record['701'] is not None:
-                              fetched_data['authors'] = str(record['701']['a']) + ' ' + str(record['701']['b'])
-                              author_2 = Author(name=fetched_data['authors'])
-                              record_table.authors.append(author_2)
-                              db.session.add(author_2)
-                            
-                              if record['702'] is not None:
-                                  fetched_data['authors'] = str(record['702']['a']) + ' ' + str(record['702']['b'])
-                                  author_3 = Author(name=fetched_data['authors'])
-                                  record_table.authors.append(author_3)
-                                  db.session.add(author_3)
-                                 
-                      
-                      if record['801'] is not None and record['801']['b'] is not None:
-                            fetched_data['database'] = str(record['801']['b'])
-                            # Check if the database entry is already exists
-                            database = db.session.query(Database).filter_by(name=fetched_data['database']).scalar()
-                            if database is not None:
-                                db.session.add(database)
-                                record_table.database.append(database)
+            reader = MARCReader(fh,  file_encoding=file_encoding)
+            for record in reader:
+                record_table = Record()
+                record_table.database.append(source_database)
+                doctype = Doctype()
+                publisher = Publisher()
+                
+                # Title
+                if record['200'] is not None: 
+                    if record['200']['a'] is not None:
+                        record_table.title = str(record['200']['a'])
+                    # Doctype
+                    if record['200']['b'] is not None:
+                        doctype = db.session.query(Doctype).filter_by(name=str(record['200']['b'])).scalar()
+                        if doctype is not None:
+                            db.session.add(doctype)
+                            record_table.doctypes.append(doctype)
+                        else:
+                            doctype = Doctype(name=str(record['200']['b']))
+                            record_table.doctypes.append(doctype)
+                            db.session.add(doctype)
+                
+                # Publishing year
+                if record['210'] is not None:
+                    if record['210']['d'] is not None:
+                        record_table.publishing_year = int(record['210']['d'])
+                
+                # Description
+                if record['330'] is not None:
+                    if record['330']['a'] is not None:
+                        record_table.description = str(record['330']['a'])
+                
+                # Cover
+                if record['953'] is not None:
+                    if record['953']['a'] is not None:
+                        record_table.cover = str(record['953']['a'])
+                
+                # ISBN
+                if record['010'] is not None:
+                    if record['010']['a'] is not None:
+                        record_table.isbn = str(record['010']['a'])
+                
+                # ISSN
+                if record['011'] is not None:
+                    if record['011']['a'] is not None:
+                        record_table.issn = str(record['011']['a'])
+                
+                # Pages
+                if record['215'] is not None:
+                    if record['215']['a'] is not None:
+                        record_table.pages = str(record['215']['a'])
+                
+                # URL
+                if record['856'] is not None:
+                    if record['856']['u'] is not None:
+                        record_table.url = str(record['856']['u'])
+                
+                # УДК
+                if record['675'] is not None: 
+                    if record['675']['a'] is not None:
+                        record_table.udc = str(record['675']['a'])
+                
+                # ББК
+                if record['686'] is not None: 
+                    if record['686']['a'] is not None:
+                        record_table.bbk = str(record['686']['a'])
+            
+                # Authors
+                if record['700'] is not None:
+                    if record['700']['a'] is not None:
+                        if record['700']['b'] is not None:
+                            author_name = db.session.query(Author).filter_by(name=str(record['700']['a']) + ' ' + str(record['700']['b'])).scalar()
+                            if author_name is not None:
+                                record_table.authors.append(author_name)
+                                db.session.add(author_name)
                             else:
-                                database = Database(name=fetched_data['database'])
-                                record_table.database.append(database)
-                                db.session.add(database)
-
-                      if record['210'] is not None and record['210']['c'] is not None:
-                            fetched_data['publisher'] = str(record['210']['c'])
-                            publisher = db.session.query(Publisher).filter_by(name=fetched_data['publisher']).scalar()
-                            if publisher is not None:
-                                db.session.add(publisher)
-                                record_table.publisher.append(publisher)
+                                author_name = Author(name=str(record['700']['a']) + ' ' + str(record['700']['b']))
+                                record_table.authors.append(author_name)
+                                db.session.add(author_name)
+                if record['701'] is not None:
+                    if record['701']['a'] is not None and record['701']['b'] is not None:
+                        temp = list()
+                        for f in record.get_fields('701'):
+                            temp.append(str(f['a']) + ' ' + str(f['b']))
+                        for val in temp:
+                            author_name = db.session.query(Author).filter_by(name=val).scalar()
+                            if author_name is not None:
+                                record_table.authors.append(author_name)
+                                db.session.add(author_name)
                             else:
-                                publisher = Publisher(name=fetched_data['publisher'])
-                                record_table.publisher.append(publisher)
-                                db.session.add(publisher)
+                                author_name = Author(name=val)
+                                record_table.authors.append(author_name)
+                                db.session.add(author_name)
+                
+                # Publisher
+                if record['210'] is not None:
+                    if record['210']['c'] is not None:
+                        publisher = db.session.query(Publisher).filter_by(name=str(record['210']['c'])).scalar()
+                        if publisher is not None:
+                            db.session.add(publisher)
+                            record_table.publisher.append(publisher)
+                        else:
+                            publisher = Publisher(name=str(record['210']['c']))
+                            record_table.publisher.append(publisher)
+                            db.session.add(publisher)
                     
-                      
-                      # TODO: generate bibliographic description
-                      fetched_data['bibliographic_description'] = 'Здесь будет библиографическая запись'
-                      record_table.bibliographic_description=fetched_data['bibliographic_description']
-
-                      db.session.add(record_table)
-                      db.session.commit()
-                      fetched_data.clear()
+                # TODO: generate bibliographic description
+                record_table.bibliographic_description = None
+                db.session.add(record_table)
+                db.session.commit()
+                
+    def _process_data_rucont(self, input_data):
+        file_encoding = self._get_encoding_type(input_data)
+        # It is assumed that source databases names are already in the database 
+        source_database = db.session.query(Database).filter_by(name='ЭБС РУКОНТ').scalar()
+        with open(input_data, 'rb') as fh:
+            reader = MARCReader(fh,  file_encoding=file_encoding)
+            for record in reader:
+                record_table = Record()
+                record_table.database.append(source_database)
+                publisher = Publisher()
+                
+                # Title
+                if record['200'] is not None: 
+                    if record['200']['a'] is not None:
+                        record_table.title = str(record['200']['a'])
+                        
+                # Doctypes
+                if record['203'] is not None:
+                    if record['203']['a'] is not None:
+                        temp = list()
+                        for f in record.get_fields('203'):
+                            temp.append(str(f['a']).capitalize())
+                        for val in temp:
+                            doctype_name = db.session.query(Doctype).filter_by(name=val).scalar()
+                            if doctype_name is not None:
+                                db.session.add(doctype_name)
+                                record_table.doctypes.append(doctype_name)
+                            else:
+                                doctype_name = Doctype(name=val)
+                                record_table.doctypes.append(doctype_name)
+                                db.session.add(doctype_name)
+                    if record['203']['c'] is not None:
+                        temp = list()
+                        for f in record.get_fields('203'):
+                            temp.append(str(f['c']).capitalize())
+                        for val in temp:
+                            doctype_name = db.session.query(Doctype).filter_by(name=val).scalar()
+                            if doctype_name is not None:
+                                db.session.add(doctype_name)
+                                record_table.doctypes.append(doctype_name)
+                            else:
+                                doctype_name = Doctype(name=val)
+                                record_table.doctypes.append(doctype_name)
+                                db.session.add(doctype_name)
+                        
+                
+                # Publishing year
+                if record['210'] is not None:
+                    if record['210']['d'] is not None:
+                        record_table.publishing_year = int(record['210']['d'])
+                
+                # Description
+                if record['330'] is not None:
+                    if record['330']['a'] is not None:
+                        record_table.description = str(record['330']['a'])
+                
+                # Cover
+                if record['956'] is not None:
+                    if record['956']['a'] is not None:
+                        record_table.cover = str(record['956']['a'])
+                
+                # ISBN
+                if record['010'] is not None:
+                    if record['010']['a'] is not None:
+                        record_table.isbn = str(record['010']['a'])
+                
+                # ISSN
+                if record['011'] is not None:
+                    if record['011']['a'] is not None:
+                        record_table.issn = str(record['011']['a'])
+                
+                # Pages
+                if record['215'] is not None:
+                    if record['215']['a'] is not None:
+                        record_table.pages = str(record['215']['a'])
+                
+                # URL
+                if record['856'] is not None:
+                    if record['856']['u'] is not None:
+                        record_table.url = str(record['856']['u'])
+                
+                # УДК
+                if record['675'] is not None: 
+                    if record['675']['a'] is not None:
+                        record_table.udc = str(record['675']['a'])
+                
+                # ББК
+                if record['686'] is not None: 
+                    if record['686']['a'] is not None:
+                        record_table.bbk = str(record['686']['a'])
+                
+                # Authors
+                if record['700'] is not None:
+                    if record['700']['a'] is not None and record['700']['b'] is not None:
+                        author_name = db.session.query(Author).filter_by(name=str(record['700']['a']) + ' ' + str(record['700']['b'])).scalar()
+                        if author_name is not None:
+                            record_table.authors.append(author_name)
+                            db.session.add(author_name)
+                        else:
+                            author_name = Author(name=str(record['700']['a']) + ' ' + str(record['700']['b']))
+                            record_table.authors.append(author_name)
+                            db.session.add(author_name)
+                    elif record['700']['a'] is not None and record['700']['g'] is not None:
+                        author_name = db.session.query(Author).filter_by(name=str(record['700']['a']) + ' ' + str(record['700']['g'])).scalar()
+                        if author_name is not None:
+                            record_table.authors.append(author_name)
+                            db.session.add(author_name) 
+                        else:
+                            author_name = Author(name=str(record['700']['a']) + ' ' + str(record['700']['g']))
+                            record_table.authors.append(author_name)
+                            db.session.add(author_name)
+                if record['701'] is not None:
+                    if record['701']['a'] is not None and record['701']['b'] is not None:
+                        temp = list()
+                        for f in record.get_fields('701'):
+                            temp.append(str(f['a']) + ' ' + str(f['b']))
+                        for val in temp:
+                            author_name = db.session.query(Author).filter_by(name=val).scalar()
+                            if author_name is not None:
+                                record_table.authors.append(author_name)
+                                db.session.add(author_name)
+                            else:
+                                author_name = Author(name=val)
+                                record_table.authors.append(author_name)
+                                db.session.add(author_name)
+                    elif record['701']['a'] is not None and record['701']['g'] is not None:
+                        temp = list()
+                        for f in record.get_fields('701'):
+                            temp.append(str(f['a']) + ' ' + str(f['g']))
+                        for val in temp:
+                            author_name = db.session.query(Author).filter_by(name=val).scalar()
+                            if author_name is not None:
+                                record_table.authors.append(author_name)
+                                db.session.add(author_name)
+                            else:
+                                author_name = Author(name=val)
+                                record_table.authors.append(author_name)
+                                db.session.add(author_name)
+                if record['702'] is not None:
+                    if record['702']['a'] is not None and record['702']['b'] is not None:
+                        temp = list()
+                        for f in record.get_fields('702'):
+                            temp.append(str(f['a']) + ' ' + str(f['b']))
+                        for val in temp:
+                            author_name = db.session.query(Author).filter_by(name=val).scalar()
+                            if author_name is not None:
+                                record_table.authors.append(author_name)
+                                db.session.add(author_name)
+                            else:
+                                author_name = Author(name=val)
+                                record_table.authors.append(author_name)
+                                db.session.add(author_name)
+                    elif record['702']['a'] is not None and record['702']['g'] is not None:
+                        temp = list()
+                        for f in record.get_fields('702'):
+                            temp.append(str(f['a']) + ' ' + str(f['g']))
+                        for val in temp:
+                            author_name = db.session.query(Author).filter_by(name=val).scalar()
+                            if author_name is not None:
+                                record_table.authors.append(author_name)
+                                db.session.add(author_name)
+                            else:
+                                author_name = Author(name=val)
+                                record_table.authors.append(author_name)
+                                db.session.add(author_name)
+                            
+                # Publisher
+                if record['210'] is not None:
+                    if record['210']['c'] is not None:
+                        publisher = db.session.query(Publisher).filter_by(name=str(record['210']['c'])).scalar()
+                        if publisher is not None:
+                            db.session.add(publisher)
+                            record_table.publisher.append(publisher)
+                        else:
+                            publisher = Publisher(name=str(record['210']['c']))
+                            record_table.publisher.append(publisher)
+                            db.session.add(publisher)
+                    
+                # TODO: generate bibliographic description
+                record_table.bibliographic_description = None
+                db.session.add(record_table)
+                db.session.commit()

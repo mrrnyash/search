@@ -33,6 +33,11 @@ record_author_assoc_table = db.Table('records_authors', db.metadata,
     db.Column('record_id', db.Integer, db.ForeignKey('record.id', onupdate="CASCADE", ondelete="RESTRICT"), primary_key=True)
 )
 
+record_doctype_assoc_table = db.Table('records_doctypes', db.metadata,
+    db.Column('doctype_id', db.Integer, db.ForeignKey('doctype.id', onupdate="CASCADE", ondelete="RESTRICT"), primary_key=True),
+    db.Column('record_id', db.Integer, db.ForeignKey('record.id', onupdate="CASCADE", ondelete="RESTRICT"), primary_key=True)
+)
+
 # Parent table
 class Record(db.Model):
     __tablename__ = 'record'
@@ -49,16 +54,16 @@ class Record(db.Model):
     bbk = db.Column(db.String(255), index=True)
     bibliographic_description = db.Column(db.Text)
     database_id = db.Column(db.Integer, db.ForeignKey('database.id', onupdate="CASCADE", ondelete="RESTRICT"))
-    doctype_id = db.Column(db.Integer, db.ForeignKey('doctype.id', onupdate="CASCADE", ondelete="RESTRICT"))
     publisher_id = db.Column(db.Integer, db.ForeignKey('publisher.id', onupdate="CASCADE", ondelete="RESTRICT"))
 
-    # Many to many relationship
+    # Many to many relationships
     authors = db.relationship('Author', secondary=record_author_assoc_table, lazy='subquery',
         back_populates='author_records', uselist=True)
+    doctypes = db.relationship('Doctype', secondary=record_doctype_assoc_table, lazy='subquery',
+        back_populates='doctype_records', uselist=True)
 
     # Many to one relationships
     database = db.relationship('Database', back_populates='database_records', lazy=True, uselist=True)
-    doctype = db.relationship('Doctype', back_populates='doctype_records', lazy=True, uselist=True)
     publisher = db.relationship('Publisher', back_populates='publisher_records', lazy=True, uselist=True)
 
 # Method of printing object of the class
@@ -69,7 +74,7 @@ class Record(db.Model):
 class Author(db.Model):
     __tablename__ = 'author'
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), index=True, nullable=False)
+    name = db.Column(db.String(100), index=True, nullable=False, unique=True)
     author_records = db.relationship('Record', secondary=record_author_assoc_table,  
             back_populates='authors', lazy='subquery', uselist=True)
     
@@ -91,7 +96,8 @@ class Doctype(db.Model):
     __tablename__ = 'doctype'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), index=True, unique=True, nullable=False)
-    doctype_records = db.relationship('Record', back_populates='doctype', lazy=True)
+    doctype_records = db.relationship('Record', secondary=record_doctype_assoc_table,  
+            back_populates='doctypes', lazy='subquery', uselist=True)
 
     def __repr__(self):
         return '<Doctype {}>'.format(self.name)

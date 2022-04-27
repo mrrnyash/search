@@ -1,24 +1,22 @@
 {% extends "base.html" %}
 
-{% block title %}
-Searchlib
-{% endblock %}
-
 
 {% block content %}
 
-<div class="container">
-  <div class="row">
-    <div class="col-md-10 col-lg-8 mx-lg-auto mx-md-auto">
+<div class="jumbotron">
+    <h2>Поиск по научным публикациям</h2>
+    <p class="lead">Searchlib - дискавери сервис "единого окна" для каталогов научной библиотеки БГУ</p>
+</div>
 
-      <h1 class="pt-5 pb-2">Поиск научных изданий в каталогах НБ БГУ</h1>
-
-      {{ wtf.quick_form(form) }}
-
-      <p class="pt-5"><strong>{{ message }}</strong></p>
-
+<div class="row">
+    <div class="col-md-6">
+        <h2>Официальный сайт Бурятского государственного университета</h2>
+        <p><a class="btn btn-primary" href="https://bsu.ru/"> Перейти &raquo;</a></p>
     </div>
-  </div>
+    <div class="col-md-6">
+        <h2>Научная библиотека Бурятского государственного университета</h2>
+        <p><a class="btn btn-primary" href="http://www.lib.bsu.ru/">Перейти &raquo;</a></p>
+    </div>
 </div>
 
 {% endblock %}

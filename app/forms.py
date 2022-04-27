@@ -4,8 +4,8 @@ from wtforms import StringField, SubmitField, BooleanField, PasswordField, valid
 
 
 class SearchForm(FlaskForm):
-    request = StringField('Запрос',validators=[validators.DataRequired()])
-    submit = SubmitField('Поиск')
+    request = StringField('Запрос', validators=[validators.DataRequired()])
+    submit = SubmitField('Найти')
 
 class FilterForm(FlaskForm):
     pass
