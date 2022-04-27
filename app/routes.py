@@ -1,41 +1,34 @@
 from datetime import datetime
-from flask import render_template, flash, redirect, url_for, request, session
+import re
+from flask import render_template, flash, redirect
 from app import app, models, db
 from app.forms import SearchForm, LoginForm, RegistrationForm
 # NOTE IDK
 from app.models import *
 
 
-
-@app.route('/')
+@app.route('/', methods=['POST', 'GET'])
 @app.route('/index')
 def index():
+   form = SearchForm()
    return render_template(
       'index.html', 
       title='Главная', 
       year=datetime.now().year,
-   )
+      form=form
+      )
 
-@app.route('/search', methods=['GET', 'POST'])
+@app.route('/search')
 def search():
+   records = Record.query.all()
    form = SearchForm()
-   if form.validate_on_submit():
-      search_request = form.request.data
-      records = db.session.query(Record).filter(Record.title.contains(search_request))
-      return render_template(
-         'search.html', 
-         title='Результаты поиска',
-         year=datetime.now().year,
-         records=records,
-         form=form
-         )
    return render_template(
-         'search.html', 
-         title='Результаты поиска',
-         year=datetime.now().year,
-         records=records,
-         form=form
-         )
+      'search.html', 
+      title='Результаты поиска',
+      year=datetime.now().year,
+      records=records,
+      form=form
+      )
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
