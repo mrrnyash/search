@@ -6,6 +6,10 @@
 <div class="jumbotron">
     <h2>Поиск по научным публикациям</h2>
     <p class="lead">Searchlib - дискавери сервис "единого окна" для каталогов научной библиотеки БГУ</p>
+    <p> <form class="form form-horizontal" action="/search" method="POST" name="nm">
+        {{ form.request }}
+        {{ form.submit }}
+    </form></p>
 </div>
 
 <div class="row">
