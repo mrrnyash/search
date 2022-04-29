@@ -1,18 +1,25 @@
 {% extends "base.html" %}
+
 {% block content %}
-    <h1>Войти</h1>
-    <form action="" method="post" novalidate>
-        {{ form.hidden_tag() }}
-        <p>
-            {{ form.username.label }}<br>
-            {{ form.username(size=32) }}
-        </p>
-        <p>
-            {{ form.password.label }}<br>
-            {{ form.password(size=32) }}
-        </p>
-        <p>{{ form.remember_me() }} {{ form.remember_me.label }}</p>
-        <p>{{ form.submit() }}</p>
-    </form>
-    <p><a href = "{{ url_for('register') }}">Регистрация</a></p>
-    {% endblock %}
+<div class="col-xs-11 col-sm-10 col-md-3 col-lg-3 col-centered">
+    <div class="login-form">
+        <form action="" method="post">
+            <h2 class="text-center">Войти</h2>
+            {{ form.hidden_tag() }}       
+            <div class="form-group">
+                {{ wtf.form_field(form.username) }}
+            </div>
+            <div class="form-group">
+                {{ wtf.form_field(form.password) }}
+            </div>
+            <div class="form-group">
+                <p class="text-center">{{ wtf.form_field(form.submit) }}</p>
+            </div>
+            <div class="clearfix">
+                <p class="text-center">{{form.remember_me }} {{ form.remember_me.label }}</p>
+            </div> 
+        </form>
+        <p class="text-center"><a href = "{{ url_for('register') }}">Регистрация</a></p>
+    </div>
+</div>
+{% endblock %}

@@ -15,7 +15,7 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(128))
     user_role_id = db.Column(db.Integer, db.ForeignKey('user_role.id', onupdate="CASCADE", ondelete="RESTRICT"))
-    role = db.relationship('UserRole', back_populates='users')
+    role = db.relationship('UserRole', back_populates='users', uselist=True)
     
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)

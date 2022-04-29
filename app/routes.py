@@ -3,7 +3,7 @@ from flask import render_template, flash, redirect, url_for
 from flask_login import current_user, login_user, logout_user, login_required
 from app import app, models, db
 from app.forms import SearchForm, LoginForm, RegistrationForm
-from app.models import User, Record
+from app.models import User, Record, UserRole
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -48,6 +48,9 @@ def register():
    form = RegistrationForm()
    if form.validate_on_submit():
       user = User(username=form.username.data, email=form.email.data)
+      user_role = UserRole(name=form.user_role.data)
+      db.session.add(user_role)
+      user.role.append(user_role)
       user.set_password(form.password.data)
       db.session.add(user)
       db.session.commit()
@@ -60,9 +63,15 @@ def register():
 
 @app.route('/admin')
 @login_required
-def admin(username):
-   pass
-   
+def admin():
+   return render_template(
+      'admin_panel.html')
+
+@app.route('/moderator')
+@login_required
+def moderator():
+   return render_template(
+      'moderator_panel.html')
 
 @app.route('/search')
 def search():
