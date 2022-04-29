@@ -59,7 +59,7 @@ class Record(db.Model):
     url = db.Column(db.String(255), unique=True)
     udc = db.Column(db.String(255), index=True)
     bbk = db.Column(db.String(255), index=True)
-    bibliographic_description = db.Column(db.Text)
+    # bibliographic_description = db.Column(db.Text)
     
     # Foreign keys
     source_database_id = db.Column(db.Integer, db.ForeignKey('source_database.id', onupdate="CASCADE", ondelete="RESTRICT"))

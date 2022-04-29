@@ -19,7 +19,7 @@ def index():
    
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-   if current_user.is_authenticated():
+   if current_user.is_authenticated:
       return redirect(url_for('index'))
    form = LoginForm()
    if form.validate_on_submit():
@@ -36,16 +36,33 @@ def login():
       year=datetime.now().year
       )
 
+@app.route('/logout')
+def logout():
+   logout_user()
+   return redirect(url_for('index'))
+   
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+   if current_user.is_authenticated:
+      return redirect(url_for('index'))
+   form = RegistrationForm()
+   if form.validate_on_submit():
+      user = User(username=form.username.data, email=form.email.data)
+      user.set_password(form.password.data)
+      db.session.add(user)
+      db.session.commit()
+      flash('Регистрация прошла успешно')
+      return redirect(url_for('login'))
+   return render_template(
+      'register.html', 
+      title='Регистрация',
+      form=form)
+
 @app.route('/admin')
 @login_required
 def admin(username):
    pass
    
-
-@app.route('/logout')
-def logout():
-   logout_user()
-   return redirect(url_for('index'))
 
 @app.route('/search')
 def search():
@@ -58,13 +75,4 @@ def search():
       records=records,
       form=form
       )
-   
-@app.route('/about')
-def about():
-   return render_template(
-      'about.html',
-      title='О нас',
-      year=datetime.now().year,
-      message='Разработано специально для Бурятского государственного университета.'
-)
 
