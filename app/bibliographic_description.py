@@ -1,4 +1,0 @@
-
-
-class BibliographicDescription():
-    pass

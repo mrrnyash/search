@@ -1,5 +1,4 @@
 from flask_wtf import FlaskForm
-from flask_bootstrap5 import Bootstrap
 from wtforms import StringField, SubmitField, BooleanField, PasswordField, validators
 
 

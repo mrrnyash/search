@@ -9,6 +9,9 @@ def make_shell_context():
     'UserRole': UserRole,
     'Record': Record,
     'Author': Author,
-    'Database': Database,
-    'Doctype': Doctype,
+    'SourceDatabase': SourceDatabase,
+    'DocumentType': DocumentType,
     'Publisher': Publisher}
+    
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=True)
