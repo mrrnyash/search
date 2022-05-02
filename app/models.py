@@ -12,7 +12,6 @@ def load_user(id):
 
 # User table
 class User(UserMixin, db.Model):
-    __tablename__ = 'user'
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
@@ -37,10 +36,8 @@ class User(UserMixin, db.Model):
 
 # Child table
 class UserRole(db.Model):
-    __tablename__ = 'user_role'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), unique=True)
-
     # One-to-many relationship
     users = db.relationship('User', back_populates='role', lazy=True)
 
@@ -59,10 +56,18 @@ record_author_assoc_table = db.Table('records_authors', db.metadata,
                                             primary_key=True)
                                     )
 
+record_keyword_assoc_table = db.Table('records_keywords', db.metadata,
+                                    db.Column(
+                                        'keyword_id', db.Integer,
+                                        db.ForeignKey('keyword.id', onupdate="CASCADE", ondelete="RESTRICT"),
+                                        primary_key=True),
+                                    db.Column('record_id', db.Integer,
+                                                    db.ForeignKey('record.id', onupdate="CASCADE", ondelete="RESTRICT"),
+                                                primary_key=True)
+                                    )
 
-# Parent table
+
 class Record(db.Model):
-    __tablename__ = 'record'
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.Text)
     publishing_year = db.Column(db.SmallInteger())
@@ -70,23 +75,22 @@ class Record(db.Model):
     cover = db.Column(db.String(255), unique=True)
     isbn = db.Column(db.String(255), index=True)
     issn = db.Column(db.String(255), index=True)
-    pages = db.Column(db.Integer)
+    pages = db.Column(db.SmallInteger())
     url = db.Column(db.String(255), unique=True)
     udc = db.Column(db.String(255), index=True)
     bbk = db.Column(db.String(255), index=True)
-    # bibliographic_description = db.Column(db.Text)
-
+    bibliographic_description = db.Column(db.Text)
     # Foreign keys
     source_database_id = db.Column(db.Integer,
-                            db.ForeignKey('source_database.id', onupdate="CASCADE", ondelete="RESTRICT"))
+                                db.ForeignKey('source_database.id', onupdate="CASCADE", ondelete="RESTRICT"))
     publisher_id = db.Column(db.Integer, db.ForeignKey('publisher.id', onupdate="CASCADE", ondelete="RESTRICT"))
     document_type_id = db.Column(db.Integer, db.ForeignKey('document_type.id', onupdate="CASCADE", ondelete="RESTRICT"))
-
-    # Many to many relationship
+    # Many-to-many relationships
     authors = db.relationship('Author', secondary=record_author_assoc_table, lazy='subquery',
                             back_populates='author_records', uselist=True)
-
-    # Many to one relationships
+    keywords = db.relationship('Keyword', secondary=record_keyword_assoc_table, lazy='subquery',
+                            back_populates='keyword_records', uselist=True)
+    # Many-to-one relationships
     source_database = db.relationship('SourceDatabase', back_populates='source_database_records', lazy=True,
                                     uselist=True)
     publisher = db.relationship('Publisher', back_populates='publisher_records', lazy=True, uselist=True)
@@ -97,12 +101,9 @@ class Record(db.Model):
         return '<Record {}>'.format(self.bibliographic_description)
 
 
-# Child table
 class Author(db.Model):
-    __tablename__ = 'author'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), index=True, nullable=False, unique=True)
-
     author_records = db.relationship('Record', secondary=record_author_assoc_table,
                                     back_populates='authors', lazy='subquery', uselist=True)
 
@@ -110,31 +111,32 @@ class Author(db.Model):
         return '<Author {}>'.format(self.name)
 
 
-# Child table
+class Keyword(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    tag = db.Column(db.String(255), index=True, nullable=False, unique=True)
+    keyword_records = db.relationship('Record', secondary=record_keyword_assoc_table,
+                                    back_populates='keywords', lazy='subquery', uselist=True)
+
+
 class SourceDatabase(db.Model):
-    __tablename__ = 'source_database'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), index=True, unique=True, nullable=False)
     source_database_records = db.relationship('Record', back_populates='source_database')
 
     def __repr__(self):
-        return '<SourceDatabase {}>'.format(self.name)
+        return '{}'.format(self.name)
 
 
-# Child table
 class DocumentType(db.Model):
-    __tablename__ = 'document_type'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), index=True, unique=True, nullable=False)
     document_type_records = db.relationship('Record', back_populates='document_type', lazy=True)
 
     def __repr__(self):
-        return '<DocumentType {}>'.format(self.name)
+        return '{}'.format(self.name)
 
 
-# Child table
 class Publisher(db.Model):
-    __tablename__ = 'publisher'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(255), index=True, unique=True, nullable=False)
     publisher_records = db.relationship('Record', back_populates='publisher', lazy=True)

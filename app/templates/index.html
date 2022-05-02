@@ -1,15 +1,59 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container-blue text-center">
+<div class="container">
     <div class="row">
-        <div class="col-xs-11 col-sm-11 col-md-11 col-lg-11 col-centered">
-            <form action="" class="form-inline" method="post">
-                {{ form.request(class="form-control", size=100) }} {{ wtf.form_field(form.submit) }}
+        <div class="col-xs-11 col-sm-11 col-md-8 col-lg-8">
+            <form class="form-horizontal" method="post" action="">
+                {{ form.hidden_tag() }}
+                {{ wtf.form_field(form.request) }}
+            </form>
+            <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+                <button class="btn btn-light" onclick="showDiv()" id="myButton" value="Расширенный поиск">
+                    Расширенный поиск
+                </button>
+                <div style="display:none;" id="myDiv" class="panel panel-default">
+                    <div class="panel-heading">Расширенный поиск</div>
+                    <div class="panel-body">
+                        <div class="row">
+                            <div class="col-xs-12 col-sm-12 col-md-6 col-lg-6">
+                                <form class="form-horizontal" method="post" action="">
+                                    {{ wtf.form_field(form.title) }}
+                                    {{ wtf.form_field(form.author) }}
+                                    {{ wtf.form_field(form.publishing_year) }}
+                                </form>
+                            </div>
+                            <div class="col-xs-12 col-sm-12 col-md-6 col-lg-6">
+                                <form class="form-horizontal" method="post" action="">
+                                    {{ wtf.form_field(form.keywords) }}
+                                    {{ wtf.form_field(form.isbn_issn_doi) }}
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xs-1 col-sm-1 col-md-1 col-lg-1">
+            <br>
+            <form class="form-horizontal" method="post" action="">
+                {{ wtf.form_field(form.submit) }}
             </form>
         </div>
+        <div class="col-xs-12 col-sm-12 col-md-3 col-lg-3">
+            <br>
+            <div class="well">
+                <p>Тип документа:</p>
+                <form class="form-horizontal" method="post" action="">
+                    {{ form.document_type }}
+                </form><hr/>
+                <p>База данных:</p>
+                <form class="form-horizontal" method="post" action="">
+                    {{ form.source_database }}
+                </form>
+            </div>
+        </div>
     </div>
-</div>
-
+</div> <!-- container -->
 <hr/>
 {% endblock %}

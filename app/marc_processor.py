@@ -83,12 +83,12 @@ class MARCProcessor:
                 # ISBN
                 if record['010'] is not None:
                     if record['010']['a'] is not None:
-                        record_table.isbn = record['010']['a']
+                        record_table.isbn = re.sub('\D', '', record['010']['a'])
 
                 # ISSN
                 if record['011'] is not None:
                     if record['011']['a'] is not None:
-                        record_table.issn = record['011']['a']
+                        record_table.issn = re.sub('\D', '', record['011']['a'])
 
                 # Pages
                 if record['215'] is not None:
@@ -219,9 +219,37 @@ class MARCProcessor:
                             publisher_entry = Publisher(name=record['210']['c'])
                             record_table.publisher.append(publisher_entry)
                             db.session.add(publisher_entry)
+                # Keywords
+                if record['610'] is not None:
+                    if record['610']['a'] is not None:
+                        keywords_list = []
+                        for f in record.get_fields('610'):
+                            keywords_list.append(f['a'].lower())
+                        for val in keywords_list:
+                            temp = []
+                            if '--' in val:
+                                temp = val.split('--')
+                                keywords_list.remove(val)
+                            if ',' in val:
+                                temp = val.split(',')
+                                keywords_list.remove(val)
+                            for val1 in temp:
+                                if val1 != ' ' and val1 != '':
+                                    keywords_list.append(val1.strip())
+                        keywords_list = list(set(keywords_list))
+                        for val in keywords_list:
+                            val = val.replace('"', '')
+                            keyword_entry = db.session.query(Keyword).filter_by(tag=val).scalar()
+                            if keyword_entry is not None:
+                                record_table.keywords.append(keyword_entry)
+                                db.session.add(keyword_entry)
+                            else:
+                                keyword_entry = Keyword(tag=val)
+                                record_table.keywords.append(keyword_entry)
+                                db.session.add(keyword_entry)
 
                 # TODO: generate bibliographic description
-                # record_table.bibliographic_description = None
+                record_table.bibliographic_description = None
                 db.session.add(record_table)
                 db.session.commit()
 
@@ -261,7 +289,7 @@ class MARCProcessor:
                     record_table.document_type.append(document_type_entry)
                     db.session.add(document_type_entry)
 
-                    # Publishing year
+                # Publishing year
                 if record['260'] is not None:
                     if record['260']['c'] is not None:
                         record_table.publishing_year = record['260']['c']
@@ -277,14 +305,12 @@ class MARCProcessor:
                         record_table.cover = record['856']['x']
 
                 # ISBN
-                if record['020'] is not None:
-                    if record['020']['a'] is not None:
-                        record_table.isbn = record['020']['a']
+                if record.isbn() is not None:
+                    record_table.isbn = record.isbn()
 
                 # ISSN
-                if record['022'] is not None:
-                    if record['022']['a'] is not None:
-                        record_table.issn = record['022']['a']
+                if record.issn() is not None:
+                    record_table.issn = record.issn()
 
                 # Pages
                 if record['300'] is not None:
@@ -347,7 +373,37 @@ class MARCProcessor:
                             record_table.publisher.append(publisher_entry)
                             db.session.add(publisher_entry)
 
+                # Keywords
+                if record['653'] is not None:
+                    if record['653']['a'] is not None:
+                        keywords_list = []
+                        for f in record.get_fields('653'):
+                            keywords_list.append(f['a'].lower())
+                        for val in keywords_list:
+                            temp = []
+                            if '--' in val:
+                                temp = val.split('--')
+                                keywords_list.remove(val)
+                            if ',' in val:
+                                temp = val.split(',')
+                                keywords_list.remove(val)
+                            for val1 in temp:
+                                if val1 != ' ' and val1 != '':
+                                    keywords_list.append(val1.strip())
+                        keywords_list = list(set(keywords_list))
+                        for val in keywords_list:
+                            val = val.replace('"', '')
+                            keyword_entry = db.session.query(Keyword).filter_by(tag=val).scalar()
+                            if keyword_entry is not None:
+                                record_table.keywords.append(keyword_entry)
+                                db.session.add(keyword_entry)
+                            else:
+                                keyword_entry = Keyword(tag=val)
+                                record_table.keywords.append(keyword_entry)
+                                db.session.add(keyword_entry)
+
+
                 # TODO: generate bibliographic description
-                # record_table.bibliographic_description = None
+                record_table.bibliographic_description = None
                 db.session.add(record_table)
                 db.session.commit()

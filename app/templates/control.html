@@ -1,12 +1,12 @@
-{% extends "index.html" %}
+{% extends "base.html" %}
 
 {% block content %}
 <div class="container">
     <div class="row">
         <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
-                {% for record in records %}
-                    {% include '_result.html' %}
-                {%  endfor %}
+            <div class="well">
+                <h3 class="text-center">Панель управления</h3>
+            </div>
         </div>
     </div>
 </div>

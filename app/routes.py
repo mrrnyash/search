@@ -1,7 +1,6 @@
-from datetime import datetime
 from flask import render_template, flash, redirect, url_for, request
 from flask_login import current_user, login_user, logout_user, login_required
-from app import app, models, db
+from app import app, db
 from app.forms import SearchForm, LoginForm, RegistrationForm
 from app.models import User, Record, UserRole
 from werkzeug.urls import url_parse
@@ -15,6 +14,18 @@ def index():
         'index.html',
         title='Главная',
         form=form
+    )
+
+
+@app.route('/search', methods=['GET', 'POST'])
+def search():
+    form = SearchForm()
+    records = Record.query.filter_by(id=35491)
+    return render_template(
+        'search.html',
+        title='Поиск',
+        form=form,
+        records=records
     )
 
 
@@ -85,12 +96,12 @@ def admin():
         title='Панель управления администратора')
 
 
-@app.route('/moderator')
+@app.route('/control')
 @login_required
-def moderator():
+def control():
     return render_template(
-        'moderator_panel.html',
-        title='Панель управления модератора'
+        'control.html',
+        title='Панель управления'
     )
 
 
@@ -102,16 +113,4 @@ def user(username):
         'user.html',
         user=user,
         title='Учетная запись'
-    )
-
-
-@app.route('/search')
-def search():
-    records = Record.query.all()
-    form = SearchForm()
-    return render_template(
-        'search.html',
-        title='Результаты поиска',
-        records=records,
-        form=form
     )

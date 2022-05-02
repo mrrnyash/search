@@ -1,20 +1,33 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, BooleanField, PasswordField, SelectField
+from wtforms_sqlalchemy.fields import QuerySelectMultipleField
+from wtforms.widgets import ListWidget, CheckboxInput
+from wtforms import StringField, SubmitField, BooleanField, PasswordField, SelectField, IntegerField
 from wtforms.validators import ValidationError, DataRequired, Length, Email, EqualTo
-from app.models import User
+from app.models import User, SourceDatabase, DocumentType
+from app import db
 
 
 class SearchForm(FlaskForm):
     request = StringField('', validators=[DataRequired()], render_kw={'placeholder': 'Поисковый запрос'})
-    submit = SubmitField('Найти')
-
-
-class FilterForm(FlaskForm):
     title = StringField('', render_kw={'placeholder': 'Заглавие'})
-    journal_title = StringField('', render_kw={'placeholder': 'Название журнала'})
     author = StringField('', render_kw={'placeholder': 'Автор'})
+    journal_title = StringField('', render_kw={'placeholder': 'Название журнала'})
     isbn_issn_doi = StringField('', render_kw={'placeholder': 'ISBN/ISSN/DOI'})
-    keywords = StringField('', render_kw={'placeholder': 'ISBN/ISSN/DOI'})
+    keywords = StringField('', render_kw={'placeholder': 'Ключевые слова'})
+    submit = SubmitField('Найти')
+    publishing_year = IntegerField('', render_kw={'placeholder': 'Год публикации'})
+    source_database = QuerySelectMultipleField(
+        'База данных',
+        query_factory=lambda: SourceDatabase.query.all(),
+        widget=ListWidget(prefix_label=False),
+        option_widget=CheckboxInput()
+    )
+    document_type = QuerySelectMultipleField(
+        'Тип документа',
+        query_factory=lambda: DocumentType.query.all(),
+        widget=ListWidget(prefix_label=False),
+        option_widget=CheckboxInput()
+    )
 
 
 
@@ -48,4 +61,3 @@ class LoginForm(FlaskForm):
     password = PasswordField('', validators=[DataRequired()], render_kw={'placeholder': 'Пароль'})
     remember_me = BooleanField('Запомнить меня')
     submit = SubmitField('Войти')
-
