@@ -9,7 +9,10 @@
 
 {% block scripts %}
     {{super()}}
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+    <script>window.jQuery || document.write('<script src="{{ url_for('static', filename='jquery.js') }}">\x3C/script>')</script>
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/jquery-3.6.0.js') }}"></script>
 {% endblock %}
 
 {% block navbar %}
@@ -33,22 +36,23 @@
             
             <ul class="nav navbar-nav navbar-right">
                 {% if current_user.is_anonymous %}
-                <li><a href="{{ url_for('login') }}">Войти</a></li>
+                <li><a href="{{ url_for('login') }}"><span class="glyphicon glyphicon-log-in"></span> Войти</a></li>
                 {% else %}
-                <li><a href="{{ url_for('logout') }}">Выйти</a>
-                <li><a href="{{ url_for('user', username=current_user.username) }}">{{ current_user.username  }}</a></li>
+                <li><a href="{{ url_for('logout') }}"><span class="glyphicon glyphicon-log-out"></span> Выйти</a>
+                <li><a href="{{ url_for('user', username=current_user.username) }}"><span> <img src="{{ current_user.avatar(20) }}"> </span> {{ current_user.username  }}</a></li>
                 {% endif %}
 
                 {% if current_user.role_id == 1 %}
                 <li class="dropdown">
-                <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Управление <span class="caret"></span></a>
-                <ul class="dropdown-menu">
+                <a href="#" class="dropdown-toggle myDropdown" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
+                    <span class="glyphicon glyphicon-wrench"></span> Управление <span class="caret"></span></a>
+                <ul class="dropdown-menu myList">
                 <li><a href="/admin">Панель администратора</a></li>
                 <li><a href="/control">Панель управления</a></li>
                 {% endif %}
-                {% if current_user.is_authenticated and current_user.role_id!=1 %}
+                {% if current_user.is_authenticated and current_user.role_id != 1 %}
                 <li class="dropdown">
-                <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Управление <span class="caret"></span></a>
+                <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false"> Управление <span class="caret"></span></a>
                 <ul class="dropdown-menu">
                     <li><a href="/control">Панель управления</a></li>
                     {% endif %}

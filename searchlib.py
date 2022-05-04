@@ -12,7 +12,8 @@ def make_shell_context():
             'Author': Author,
             'SourceDatabase': SourceDatabase,
             'DocumentType': DocumentType,
-            'Publisher': Publisher}
+            'Publisher': Publisher,
+            'Keyword': Keyword}
 
 
 if __name__ == '__main__':

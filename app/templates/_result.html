@@ -2,16 +2,46 @@
     <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
         <div class="well">
             <div class="row">
-                <div class="col-xs-12 col-sm-12 col-md-9 col-lg-9">
-                        <p>{{ record.source_database }} {{ record.document_type}}</p>
-                        <p><b><a href="{{ record.url }}">{{ record.title }}</a></b></p>
+                <div class="col-xs-12 col-sm-12 col-md-10 col-lg-10">
+                    <p class="text-muted">{{ record.source_database }} {{ record.document_type}}</p>
+                    <p><b><a href="{{ record.url }}">{{ record.title }}</a></b></p>
+                    <div class="myParagraph" style="display: none;">
+                        {% if record.description %}
                         <p>{{ record.description }}</p>
-                        <p><b>{{ record.publishing_year }}</b></p>
-                        <p><b>ISBN: {{ record.isbn }}</b> </p>
+                        {% endif %}
+                        {% if record.isbn %}
+                        <p><b>ISBN: {{ record.isbn }}</b></p>
+                        {% endif %}
+                        {% if record.issn %}
+                        <p><b>ISSN: {{ record.issn }}</b></p>
+                        {% endif %}
+                        {% if record.bbk %}
+                        <p><b>ББК: {{ record.bbk }}</b></p>
+                        {% endif %}
+                        {% if record.udc %}
+                        <p><b>УДК: {{ record.udc }}</b></p>
+                        {% endif %}
+                    </div>
+                    {% if record.publishing_year %}
+                    <p><b>{{ record.publishing_year }}</b></p>
+                    {% endif %}
+                    {% if record.authors %}
+                    <p><b>{{ record.authors }}</b></p>
+                    {% endif %}
+                    {% if record.publisher %}
+                    <span class="text-muted">
+                        Издательство:</span> <b>{{ record.publisher }}</b>
+                        {% endif %}
+                        {% if record.pages %}
+                        <p>{{ record.pages }} стр.</p>
+                        {% endif %}
+                    <a href="#/" class="myLink text-primary">Подробнее</a>
                 </div>
-                <div class="col-xs-12 col-sm-12 col-md-2 col-lg-2 text-center">
-                    <p><img id="cover" src="{{ record.cover }}" alt="Обложка" width="120" onmouseover="increaseImageSize()" onmouseout="resetImageSize()"></p>
+                {% if record.cover %}
+                <div class="col-xs-12 col-sm-12 col-md-2 col-lg-2">
+                    <p><img id="cover" class="myImage" src="{{ record.cover }}" alt="Обложка"></p>
                 </div>
+                {% endif  %}
             </div>
         </div>
     </div>

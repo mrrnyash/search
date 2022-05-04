@@ -6,4 +6,7 @@ from forms import SearchForm
 class Search:
 
     def get_results(self, request_data):
-        pass
+        results = list(Record())
+
+
+        return results

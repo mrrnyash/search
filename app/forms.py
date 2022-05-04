@@ -8,14 +8,15 @@ from app import db
 
 
 class SearchForm(FlaskForm):
-    request = StringField('', validators=[DataRequired()], render_kw={'placeholder': 'Поисковый запрос'})
-    title = StringField('', render_kw={'placeholder': 'Заглавие'})
-    author = StringField('', render_kw={'placeholder': 'Автор'})
-    journal_title = StringField('', render_kw={'placeholder': 'Название журнала'})
-    isbn_issn_doi = StringField('', render_kw={'placeholder': 'ISBN/ISSN/DOI'})
-    keywords = StringField('', render_kw={'placeholder': 'Ключевые слова'})
+    search_request = StringField('', validators=[DataRequired()], render_kw={'placeholder': 'Поисковый запрос'})
+    title = StringField('Заглавие', render_kw={'placeholder': 'Заглавие'})
+    author = StringField('Автор', render_kw={'placeholder': 'Автор'})
+    journal_title = StringField('Название журнала', render_kw={'placeholder': 'Название журнала'})
+    isbn_issn_doi = StringField('ISBN/ISSN/DOI', render_kw={'placeholder': 'ISBN/ISSN/DOI'})
+    keywords = StringField('Ключевые слова', render_kw={'placeholder': 'Ключевые слова'})
     submit = SubmitField('Найти')
-    publishing_year = IntegerField('', render_kw={'placeholder': 'Год публикации'})
+    publishing_year_1 = IntegerField('Опубликован от')
+    publishing_year_2 = IntegerField('До')
     source_database = QuerySelectMultipleField(
         'База данных',
         query_factory=lambda: SourceDatabase.query.all(),
@@ -29,7 +30,9 @@ class SearchForm(FlaskForm):
         option_widget=CheckboxInput()
     )
 
-
+    def validate_publishing_year(self, publishing_year_1, publishing_year_2):
+        if publishing_year_1.data > publishing_year_2.data:
+            raise ValidationError('Год начала промежутка публикации должен быть меньше или равен году его окончания')
 
 
 class RegistrationForm(FlaskForm):

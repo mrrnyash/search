@@ -108,7 +108,7 @@ class Author(db.Model):
                                     back_populates='authors', lazy='subquery', uselist=True)
 
     def __repr__(self):
-        return '<Author {}>'.format(self.name)
+        return '{}'.format(self.name)
 
 
 class Keyword(db.Model):
@@ -142,4 +142,4 @@ class Publisher(db.Model):
     publisher_records = db.relationship('Record', back_populates='publisher', lazy=True)
 
     def __repr__(self):
-        return '<Publisher {}>'.format(self.name)
+        return '{}'.format(self.name)

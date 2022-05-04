@@ -1,4 +1,5 @@
-from flask import render_template, flash, redirect, url_for, request
+from flask import render_template, flash, redirect, url_for, \
+    request, jsonify, session
 from flask_login import current_user, login_user, logout_user, login_required
 from app import app, db
 from app.forms import SearchForm, LoginForm, RegistrationForm
@@ -6,27 +7,29 @@ from app.models import User, Record, UserRole
 from werkzeug.urls import url_parse
 
 
-@app.route('/', methods=['GET', 'POST'])
-@app.route('/index')
+def search(search_request):
+    records = Record.query.filter(Record.title.like("%{}%".format(search_request))).all()
+    return render_template(
+        'search.html',
+        title='Поиск',
+        records=records
+    )
+
+
+@app.route('/')
+@app.route('/index', methods=['GET', 'POST'])
 def index():
     form = SearchForm()
+    if form.validate_on_submit():
+        search_request=form.search_request.data
+        return search(search_request=search_request)
+
     return render_template(
         'index.html',
         title='Главная',
         form=form
     )
-
-
-@app.route('/search', methods=['GET', 'POST'])
-def search():
-    form = SearchForm()
-    records = Record.query.filter_by(id=35491)
-    return render_template(
-        'search.html',
-        title='Поиск',
-        form=form,
-        records=records
-    )
+# TODO: AJAX request
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -47,7 +50,7 @@ def login():
             return redirect(next_page)
         else:
             if not next_page or url_parse(next_page).netloc != '':
-                next_page = url_for('moderator')
+                next_page = url_for('control')
             return redirect(next_page)
     return render_template(
         'login.html',
