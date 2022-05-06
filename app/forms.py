@@ -2,21 +2,20 @@ from flask_wtf import FlaskForm
 from wtforms_sqlalchemy.fields import QuerySelectMultipleField
 from wtforms.widgets import ListWidget, CheckboxInput
 from wtforms import StringField, SubmitField, BooleanField, PasswordField, SelectField, IntegerField
-from wtforms.validators import ValidationError, DataRequired, Length, Email, EqualTo
+from wtforms.validators import ValidationError, DataRequired, Length, Email, EqualTo, Optional
 from app.models import User, SourceDatabase, DocumentType
-from app import db
 
 
 class SearchForm(FlaskForm):
-    search_request = StringField('', validators=[DataRequired()], render_kw={'placeholder': 'Поисковый запрос'})
-    title = StringField('Заглавие', render_kw={'placeholder': 'Заглавие'})
-    author = StringField('Автор', render_kw={'placeholder': 'Автор'})
-    journal_title = StringField('Название журнала', render_kw={'placeholder': 'Название журнала'})
-    isbn_issn_doi = StringField('ISBN/ISSN/DOI', render_kw={'placeholder': 'ISBN/ISSN/DOI'})
-    keywords = StringField('Ключевые слова', render_kw={'placeholder': 'Ключевые слова'})
-    submit = SubmitField('Найти')
-    publishing_year_1 = IntegerField('Опубликован от')
-    publishing_year_2 = IntegerField('До')
+    search_request = StringField('', render_kw={'placeholder': 'Поисковый запрос'})
+    title = StringField('Заглавие', validators=[Optional()], render_kw={'placeholder': 'Заглавие'})
+    author = StringField('Автор', validators=[Optional()], render_kw={'placeholder': 'Автор'})
+    journal_title = StringField('Название журнала', validators=[Optional()],
+                                render_kw={'placeholder': 'Название журнала'})
+    isbn_issn_doi = StringField('ISBN/ISSN/DOI', validators=[Optional()], render_kw={'placeholder': 'ISBN/ISSN/DOI'})
+    keywords = StringField('Ключевые слова', validators=[Optional()], render_kw={'placeholder': 'Ключевые слова'})
+    publishing_year_1 = IntegerField('Опубликован от', validators=[Optional()], render_kw={'placeholder': 'От'})
+    publishing_year_2 = IntegerField('До', validators=[Optional()], render_kw={'placeholder': 'До'})
     source_database = QuerySelectMultipleField(
         'База данных',
         query_factory=lambda: SourceDatabase.query.all(),
@@ -29,10 +28,7 @@ class SearchForm(FlaskForm):
         widget=ListWidget(prefix_label=False),
         option_widget=CheckboxInput()
     )
-
-    def validate_publishing_year(self, publishing_year_1, publishing_year_2):
-        if publishing_year_1.data > publishing_year_2.data:
-            raise ValidationError('Год начала промежутка публикации должен быть меньше или равен году его окончания')
+    submit = SubmitField('Найти')
 
 
 class RegistrationForm(FlaskForm):

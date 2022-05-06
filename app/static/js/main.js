@@ -1,6 +1,6 @@
 $(document).ready(function(){
     $(".myLink2").click(function(){
-    $(".myDiv").slideToggle();
+    $(".myDiv").fadeToggle();
     $(this).text($(this).text() == 'Расширенный поиск' ? 'Свернуть' : 'Расширенный поиск');
     });
 });

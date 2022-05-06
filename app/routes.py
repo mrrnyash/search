@@ -3,33 +3,45 @@ from flask import render_template, flash, redirect, url_for, \
 from flask_login import current_user, login_user, logout_user, login_required
 from app import app, db
 from app.forms import SearchForm, LoginForm, RegistrationForm
-from app.models import User, Record, UserRole
+from app.models import *
 from werkzeug.urls import url_parse
+from app.search import Search
 
 
-def search(search_request):
-    records = Record.query.filter(Record.title.like("%{}%".format(search_request))).all()
-    return render_template(
-        'search.html',
-        title='Поиск',
-        records=records
-    )
-
-
-@app.route('/')
+@app.route('/', methods=['GET', 'POST'])
 @app.route('/index', methods=['GET', 'POST'])
 def index():
     form = SearchForm()
     if form.validate_on_submit():
-        search_request=form.search_request.data
-        return search(search_request=search_request)
-
+        session['formdata'] = form.data
+        return redirect(url_for('search'))
     return render_template(
         'index.html',
         title='Главная',
         form=form
     )
-# TODO: AJAX request
+
+@app.route('/search', methods=['GET', 'POST'])
+def search():
+    formdata = session.get('formdata', None)
+    page = request.args.get('page', 1, type=int)
+    num_records = Record.query.filter(
+        Record.title.like('%{}%'.format(formdata['search_request']))).count()
+    records = Record.query.filter(
+        Record.title.like('%{}%'.format(formdata['search_request']))).paginate(
+        page, app.config['RECORDS_PER_PAGE'], False)
+    next_url = url_for('search', page=records.next_num) \
+        if records.has_next else None
+    prev_url = url_for('search', page=records.prev_num) \
+        if records.has_prev else None
+    return render_template(
+        'index.html',
+        title='Поиск',
+        records=records.items,
+        next_url=next_url,
+        prev_url=prev_url,
+        num_records=num_records
+    )
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -94,17 +106,22 @@ def register():
 @app.route('/admin')
 @login_required
 def admin():
+    sum_records = Record.query.count()
     return render_template(
         'admin_panel.html',
-        title='Панель управления администратора')
+        title='Панель управления администратора',
+        sum_records=sum_records
+    )
 
 
 @app.route('/control')
 @login_required
 def control():
+    sum_records = Record.query.count()
     return render_template(
         'control.html',
-        title='Панель управления'
+        title='Панель управления',
+        sum_records=sum_records
     )
 
 
