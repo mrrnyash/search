@@ -2,6 +2,7 @@ from app import db, login
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
 from hashlib import md5
+from app.search import Search
 
 
 # Authentication
@@ -68,6 +69,7 @@ record_keyword_assoc_table = db.Table('records_keywords', db.metadata,
 
 
 class Record(db.Model):
+    __searchable__ = ['title']
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.Text)
     publishing_year = db.Column(db.SmallInteger())
