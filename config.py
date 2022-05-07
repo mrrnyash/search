@@ -26,3 +26,6 @@ class Config(object):
     ADMINS = ['mrrnyash@gmail.com']
 
     RECORDS_PER_PAGE = 10
+
+    ELASTICSEARCH_URL = os.environ.get('ELASTICSEARCH_URL')
+

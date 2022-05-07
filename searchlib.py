@@ -1,5 +1,9 @@
-from app import app
-from app.models import *
+from app import create_app, db
+from app.models import User, UserRole, Record, Author, \
+    SourceDatabase, DocumentType, Publisher, Keyword
+
+app = create_app()
+
 
 
 # Create a shell context for testing in Python interpreter

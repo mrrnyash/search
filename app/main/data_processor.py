@@ -1,5 +1,4 @@
-from app.models import *
-from app.marc_processor import MARCProcessor
+from app.main.marc_processor import MARCProcessor
 
 
 class DataProcessor:
