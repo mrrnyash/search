@@ -5,7 +5,6 @@ from app.models import User, UserRole, Record, Author, \
 app = create_app()
 
 
-
 # Create a shell context for testing in Python interpreter
 @app.shell_context_processor
 def make_shell_context():

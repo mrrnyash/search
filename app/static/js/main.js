@@ -18,4 +18,14 @@ $(document).ready(function(){
     });
 });
 
+$(document).ready(function(){
+	// bind and scroll header div
+	$(window).bind('resize', function(e){
+		$(".affix").css('width',$(".container-fluid" ).width());
+	});
+	$(window).on("scroll", function() {
+		$(".affix").css('width',$(".container-fluid" ).width());
+	});
+});
+
 

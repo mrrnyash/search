@@ -7,7 +7,7 @@ ul {
     list-style-type: none; /* Remove bullets */
     padding: 0; /* Remove padding */
     margin: 0; /* Remove margins */
-    }
+}
 
 .myImage {
   transition: transform .2s; /* Animation */
@@ -16,15 +16,15 @@ ul {
   display: block;
   margin-left: auto;
   margin-right: auto;
-    }
+}
 
 .myImage:hover {
   transform: scale(1.2); /* (150% zoom - Note: if the zoom is too large, it will go outside of the viewport) */
-    }
+}
 
 .well {
    background-color: #ffffff;
-   }
+}
 
 .myPreviousLink {
     text-align: start;
@@ -38,6 +38,14 @@ ul {
     padding-bottom: 30px;
 }
 
-#myContent {
-    padding-top: 70px;
+
+.myDiv {
+    display: none;
+}
+
+.affix {
+    top:10px;
+    position: fixed;
+   	width: 100%;
+	z-index:777;
 }

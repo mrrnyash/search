@@ -1,0 +1,22 @@
+  <div data-spy="affix" data-offset-top="100">
+	<div class="header_for_fix" >
+      <nav aria-label="...">
+        <ul class="pager">
+          <li class="previous{% if not prev_url %} disabled{% endif %}">
+            <a href="{{ prev_url or '#' }}">
+              <span aria-hidden="true">&larr;</span>
+              Предыдущая страница
+            </a>
+          </li>
+          <li class="previous{% if not next_url %} disabled{% endif %}">
+            <a href="{{ next_url or '#' }}">
+              Следующая страница
+              <span aria-hidden="true">&rarr;</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+    </div>
+</div>
+
+

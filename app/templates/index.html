@@ -1,96 +1,73 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container" id="myContent">
+<div class="container">
     <div class="row">
-        {% if form %}
-        <form class="form-horizontal" method="post" action="">
-            <div class="col-xs-12 col-sm-12 col-md-8 col-lg-8">
-                <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
-                        {{ form.hidden_tag()}}
-                        {{ wtf.form_field(form.search_request) }}
+        <div class="col-xs-12 col-sm-12 col-md-8 col-lg-8">
+            <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+                {% if g.search_form %}
+                    <form class="form-horizontal" method="get" action="{{ url_for('main.search') }}">
+                        <div class="form-group">
+                            {{ g.search_form.q(class='form-control') }}
+                        </div>
                         <div class="text-center"><button type="button" class="btn btn-link myLink2">Расширенный поиск</button></div>
-                        <div style="display:none;" class="myDiv">
-                            <div class="row">
-                                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
-                                    {{ wtf.form_field(form.title) }}
+                            <div class="myDiv">
+                                <div class="row">
+                                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                                        {{ wtf.form_field(g.search_form.title) }}
+                                    </div>
+                                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                                                {{ wtf.form_field(g.search_form.author) }}
+                                    </div>
                                 </div>
-                                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
-                                    {{ wtf.form_field(form.author) }}
+                                <div class="row">
+                                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                                        {{ wtf.form_field(g.search_form.isbn_issn_doi) }}
+                                    </div>
+                                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                                        {{ wtf.form_field(g.search_form.keywords) }}
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-xs-6 col-sm-6 col-md-6 col-lg-6">
+                                        {{ wtf.form_field(g.search_form.pubyear1) }}
+                                    </div>
+                                    <div class="col-xs-6 col-sm-6 col-md-6 col-lg-6">
+                                        {{ wtf.form_field(g.search_form.pubyear2) }}
+                                    </div>
                                 </div>
                             </div>
-                        <div class="row">
-                            <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
-                                {{ wtf.form_field(form.isbn_issn_doi) }}
-                            </div>
-                            <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
-                                {{ wtf.form_field(form.keywords) }}
                             </div>
                         </div>
-                        <div class="row">
-                            <div class="col-xs-6 col-sm-6 col-md-6 col-lg-6">
-                                {{ wtf.form_field(form.publishing_year_1) }}
+                            <div class="col-xs-12 col-sm-12 col-md-1 col-lg-1 text-center">
+                                {{ wtf.form_field(g.search_form.submit) }}
                             </div>
-                            <div class="col-xs-6 col-sm-6 col-md-6 col-lg-6">
-                                {{ wtf.form_field(form.publishing_year_2) }}
+                        <div class="col-xs-12 col-sm-12 col-md-3 col-lg-3">
+                            <p>Тип документа:</p>
+                            {{ g.search_form.document_type }}
+                            <hr/>
+                            <p>База данных:</p>
+                            {{ g.search_form.source_database }}
+                            <hr/>
+                            <div class="alert alert-info" role="alert">
+                                Документов в базе: <b>{{ g.sum_records }}</b>
                             </div>
                         </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-xs-12 col-sm-12 col-md-1 col-lg-1 text-center">
-                <br>
-                {{ wtf.form_field(form.submit) }}
-            </div>
-            <div class="col-xs-12 col-sm-12 col-md-3 col-lg-3">
-                <br>
-                <p><span class="glyphicon glyphicon-file"></span> Тип документа:</p>
-                {{ form.document_type }}
-                <hr/>
-                <p><span class="glyphicon glyphicon-folder-open"></span> База данных:</p>
-                {{ form.source_database }}
-            </div>
-        </form>
-        {% endif %}
-
-        {% if records %}
-        <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
-            <div class="row">
-                <div class="col-xs-4 col-sm-4 col-md-4 col-lg-4 myPreviousLink">
-                    {% if prev_url %}
-                    <a href="{{ prev_url }}">&laquo Предыдущая страница </a>
-                    {% endif %}
-                </div>
-                <div class="col-xs-4 col-sm-4 col-md-4 col-lg-4"></div>
-                <div class="col-xs-4 col-sm-4 col-md-4 col-lg-4 myNextLink">
-                    {% if next_url %}
-                    <a href="{{ next_url }}"> Следующая страница &raquo</a>
-                    {% endif %}
-                </div>
-            </div>
-            <div class="alert alert-success" role="alert">
-                Результатов найдено: <b>{{ num_records }}</b>
-            </div>
-        </div>
-        <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
-            {% for record in records %}
-            {% include '_result.html' %}
-            {%  endfor %}
-            <div class="row">
-                <div class="col-xs-4 col-sm-4 col-md-4 col-lg-4 myPreviousLink">
-                    {% if prev_url %}
-                    <a href="{{ prev_url }}">&laquo Предыдущая страница </a>
-                    {% endif %}
-                </div>
-                <div class="col-xs-4 col-sm-4 col-md-4 col-lg-4"></div>
-                <div class="col-xs-4 col-sm-4 col-md-4 col-lg-4 myNextLink">
-                    {% if next_url %}
-                    <a href="{{ next_url }}"> Следующая страница &raquo</a>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
+                    </form>
         {% endif %}
     </div> <!-- row -->
+    {% if records %}
+    <div class="row" id="myRow">
+        <div class="col-xs-12 col-sm-12 col-md-8 col-lg-8">
+            <div class="alert alert-success" role="alert">
+                Найдено документов: <b>{{ total }}</b>
+            </div>
+            {% include '_pagination.html' %}
+            {% for record in records %}
+                {% include '_result.html' %}
+            {%  endfor %}
+        </div>
+    </div>
+{% endif %}
 </div> <!-- container -->
 {% endblock %}

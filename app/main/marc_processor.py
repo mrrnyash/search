@@ -239,12 +239,12 @@ class MARCProcessor:
                         keywords_list = list(set(keywords_list))
                         for val in keywords_list:
                             val = val.replace('"', '')
-                            keyword_entry = db.session.query(Keyword).filter_by(tag=val).scalar()
+                            keyword_entry = db.session.query(Keyword).filter_by(name=val).scalar()
                             if keyword_entry is not None:
                                 record_table.keywords.append(keyword_entry)
                                 db.session.add(keyword_entry)
                             else:
-                                keyword_entry = Keyword(tag=val)
+                                keyword_entry = Keyword(name=val)
                                 record_table.keywords.append(keyword_entry)
                                 db.session.add(keyword_entry)
 
@@ -393,12 +393,12 @@ class MARCProcessor:
                         keywords_list = list(set(keywords_list))
                         for val in keywords_list:
                             val = val.replace('"', '')
-                            keyword_entry = db.session.query(Keyword).filter_by(tag=val).scalar()
+                            keyword_entry = db.session.query(Keyword).filter_by(name=val).scalar()
                             if keyword_entry is not None:
                                 record_table.keywords.append(keyword_entry)
                                 db.session.add(keyword_entry)
                             else:
-                                keyword_entry = Keyword(tag=val)
+                                keyword_entry = Keyword(name=val)
                                 record_table.keywords.append(keyword_entry)
                                 db.session.add(keyword_entry)
 

@@ -1,67 +1,67 @@
 from flask import render_template, redirect, url_for, \
-    request, session, current_app
+    request, current_app
 from app.main.forms import SearchForm
 from app.models import User, Record
 from app.main import bp
 from flask_login import login_required
+from flask import g
+from app import db
 
+@bp.before_app_request
+def before_request():
+    g.search_form = SearchForm()
+    db.session.commit()
+    g.sum_records = Record.query.count()
 
 @bp.route('/', methods=['GET', 'POST'])
 @bp.route('/index', methods=['GET', 'POST'])
 def index():
-    form = SearchForm()
-    if form.validate_on_submit():
-        session['formdata'] = form.data
-        return redirect(url_for('main.search'))
     return render_template(
-        'index.html',
-        title='Главная',
-        form=form
-    )
+            'index.html',
+            title='Главная'
+        )
 
 
-@bp.route('/search', methods=['GET', 'POST'])
+@bp.route('/search')
 def search():
-    formdata = session.get('formdata', None)
+    if not g.search_form.validate():
+        return redirect(url_for('main.index'))
     page = request.args.get('page', 1, type=int)
-    num_records = Record.query.filter(
-        Record.title.like('%{}%'.format(formdata['search_request']))).count()
-    records = Record.query.filter(
-        Record.title.like('%{}%'.format(formdata['search_request']))).paginate(
-        page, current_app.config['RECORDS_PER_PAGE'], False)
-    next_url = url_for('main.search', page=records.next_num) \
-        if records.has_next else None
-    prev_url = url_for('main.search', page=records.prev_num) \
-        if records.has_prev else None
+
+
+    records, total = Record.search(g.search_form.data, page,
+                                   current_app.config['RECORDS_PER_PAGE'])
+    next_url = url_for('main.search', q=g.search_form.q.data, page=page + 1) \
+        if total > page * current_app.config['RECORDS_PER_PAGE'] else None
+    prev_url = url_for('main.search', q=g.search_form.q.data, page=page + 1) \
+        if page > 1 else None
     return render_template(
         'index.html',
         title='Поиск',
-        records=records.items,
+        records=records,
         next_url=next_url,
         prev_url=prev_url,
-        num_records=num_records
+        form=g.search_form,
+        total=total
     )
+    # return '<h1>{}</h1>'.format(g.search_form.data)
 
 
 @bp.route('/admin')
 @login_required
 def admin():
-    sum_records = Record.query.count()
     return render_template(
-        'admin_panel.html',
-        title='Панель управления администратора',
-        sum_records=sum_records
+        'administration.html',
+        title='Администрирование',
     )
 
 
 @bp.route('/control')
 @login_required
 def control():
-    sum_records = Record.query.count()
     return render_template(
         'control.html',
         title='Панель управления',
-        sum_records=sum_records
     )
 
 

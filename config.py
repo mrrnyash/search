@@ -1,10 +1,12 @@
 import os
+from dotenv import load_dotenv
 
 basedir = os.path.abspath(os.path.dirname(__file__))
+load_dotenv(os.path.join(basedir, '.env'))
 
 
 class Config(object):
-    SECRET_KEY = os.environ.get('SECRET KEY') or 'd73216725c044f0487d9534ae9bf4c21'
+    SECRET_KEY = os.environ.get('SECRET KEY') or 'you-will-never-guess'
 
     # the location of the application's database 
     # SQLite
@@ -23,9 +25,9 @@ class Config(object):
     MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS') is not None
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
-    ADMINS = ['mrrnyash@gmail.com']
+    ADMINS = ['exampleh@example.com']
 
-    RECORDS_PER_PAGE = 10
+    RECORDS_PER_PAGE = 5
 
     ELASTICSEARCH_URL = os.environ.get('ELASTICSEARCH_URL')
 
