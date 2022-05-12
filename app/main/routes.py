@@ -31,9 +31,28 @@ def search():
 
     records, total = Record.search(g.search_form.data, page,
                                    current_app.config['RECORDS_PER_PAGE'])
-    next_url = url_for('main.search', q=g.search_form.q.data, page=page + 1) \
+    next_url = url_for('main.search',
+                       q=g.search_form.q.data,
+                       title=g.search_form.title.data,
+                       author=g.search_form.author.data,
+                       isbn_issn_doi=g.search_form.isbn_issn_doi.data,
+                       keywords=g.search_form.keywords.data,
+                       pubyear1=g.search_form.pubyear1.data,
+                       pubyear2=g.search_form.pubyear2.data,
+                       source_database=g.search_form.source_database.data,
+                       document_type=g.search_form.document_type.data,
+                       page=page + 1) \
         if total > page * current_app.config['RECORDS_PER_PAGE'] else None
-    prev_url = url_for('main.search', q=g.search_form.q.data, page=page + 1) \
+    prev_url = url_for('main.search', q=g.search_form.q.data,
+                       title=g.search_form.title.data,
+                       author=g.search_form.author.data,
+                       isbn_issn_doi=g.search_form.isbn_issn_doi.data,
+                       keywords=g.search_form.keywords.data,
+                       pubyear1=g.search_form.pubyear1.data,
+                       pubyear2=g.search_form.pubyear2.data,
+                       source_database=g.search_form.source_database.data,
+                       document_type=g.search_form.document_type.data,
+                       page=page - 1) \
         if page > 1 else None
     return render_template(
         'index.html',

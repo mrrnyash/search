@@ -21,6 +21,9 @@
                         {% if record.udc %}
                         <p><b>УДК: {{ record.udc }}</b></p>
                         {% endif %}
+                        {% if record.keywords %}
+                        <p><b>Ключевые слова:</b> {{ record.keywords }}</p>
+                        {% endif %}
                     </div>
                     {% if record.publishing_year %}
                     <p><b>{{ record.publishing_year }}</b></p>

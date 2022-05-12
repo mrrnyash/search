@@ -169,7 +169,7 @@ class Keyword(db.Model):
                                       back_populates='keywords', lazy='subquery', uselist=True)
 
     def __repr__(self):
-        return '<Keyword {}>'.format(self.name)
+        return '{}'.format(self.name)
 
 
 class SourceDatabase(db.Model):
