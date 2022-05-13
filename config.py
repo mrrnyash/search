@@ -27,7 +27,10 @@ class Config(object):
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
     ADMINS = ['exampleh@example.com']
 
-    RECORDS_PER_PAGE = 5
+    RECORDS_PER_PAGE = 10
 
     ELASTICSEARCH_URL = os.environ.get('ELASTICSEARCH_URL')
+
+    UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER')
+    ALLOWED_EXTENSIONS = {'iso', 'marc', 'dat'}
 

@@ -1,6 +1,6 @@
 from flask import render_template, redirect, url_for, \
     request, current_app
-from app.main.forms import SearchForm
+from app.main.forms import SearchForm, FileForm
 from app.models import User, Record
 from app.main import bp
 from flask_login import login_required
@@ -75,13 +75,16 @@ def admin():
     )
 
 
-@bp.route('/control')
+@bp.route('/control', methods=['GET', 'POST'])
 @login_required
 def control():
+    form = FileForm()
     return render_template(
         'control.html',
         title='Панель управления',
+        form=form
     )
+
 
 
 @bp.route('/user/<username>')

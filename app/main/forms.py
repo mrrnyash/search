@@ -1,7 +1,7 @@
 from flask_wtf import FlaskForm
 from wtforms_sqlalchemy.fields import QuerySelectMultipleField
 from wtforms.widgets import ListWidget, CheckboxInput
-from wtforms import StringField, SubmitField, IntegerField
+from wtforms import StringField, SubmitField, IntegerField, FileField
 from wtforms.validators import Optional, DataRequired, ValidationError
 from app.models import SourceDatabase, DocumentType
 from flask import request
@@ -42,6 +42,11 @@ class SearchForm(FlaskForm):
     def validate_pubyear(self, pubyear1, pubyear2):
         if pubyear1 > pubyear2:
             raise ValidationError('Дата публикации задана неверно')
+
+
+class FileForm(FlaskForm):
+    file = FileField('Загрузить файлы')
+    submit = SubmitField('Загрузить')
 
 
 
