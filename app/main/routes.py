@@ -1,11 +1,14 @@
 from flask import render_template, redirect, url_for, \
-    request, current_app
-from app.main.forms import SearchForm, FileForm
-from app.models import User, Record
+    request, current_app, abort
+from app.main.forms import SearchForm
 from app.main import bp
 from flask_login import login_required
 from flask import g
 from app import db
+from werkzeug.utils import secure_filename
+import os
+from app.models import Record, User
+
 
 @bp.before_app_request
 def before_request():
@@ -27,8 +30,6 @@ def search():
     if not g.search_form.validate():
         return redirect(url_for('main.index'))
     page = request.args.get('page', 1, type=int)
-
-
     records, total = Record.search(g.search_form.data, page,
                                    current_app.config['RECORDS_PER_PAGE'])
     next_url = url_for('main.search',
@@ -63,7 +64,6 @@ def search():
         form=g.search_form,
         total=total
     )
-    # return '<h1>{}</h1>'.format(g.search_form.data)
 
 
 @bp.route('/admin')
@@ -75,15 +75,26 @@ def admin():
     )
 
 
-@bp.route('/control', methods=['GET', 'POST'])
+
+@bp.route('/control')
 @login_required
 def control():
-    form = FileForm()
     return render_template(
         'control.html',
-        title='Панель управления',
-        form=form
+        title='Панель управления'
     )
+
+@bp.route('/control', methods=['POST'])
+@login_required
+def upload_files():
+    uploaded_file = request.files['file']
+    filename = secure_filename(uploaded_file.filename)
+    if filename != '':
+        file_ext = os.path.splitext(filename)[1]
+        if file_ext not in current_app.config['ALLOWED_EXTENSIONS']:
+            return "Недопустимое разрешение файла", 400
+        uploaded_file.save(os.path.join(current_app.config['UPLOAD_FOLDER'], filename))
+    return '', 204
 
 
 

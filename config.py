@@ -8,11 +8,6 @@ load_dotenv(os.path.join(basedir, '.env'))
 class Config(object):
     SECRET_KEY = os.environ.get('SECRET KEY') or 'you-will-never-guess'
 
-    # the location of the application's database 
-    # SQLite
-    # SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
-    #     'sqlite:///' + os.path.join(basedir, 'app.db')
-
     # MySQL
     SQLALCHEMY_DATABASE_URI = 'mysql://root:@localhost/searchlib'
 
@@ -31,6 +26,12 @@ class Config(object):
 
     ELASTICSEARCH_URL = os.environ.get('ELASTICSEARCH_URL')
 
-    UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER')
-    ALLOWED_EXTENSIONS = {'iso', 'marc', 'dat'}
+    UPLOAD_FOLDER = os.path.join(basedir, os.environ.get('UPLOAD_FOLDER'))
+    ALLOWED_EXTENSIONS = os.environ.get('ALLOWED_EXTENSIONS')
+    MAX_CONTENT_LENGTH = 500 * 1024 * 1024
+
+    HASH_FILE = 'hashes.txt'
+
+
+
 

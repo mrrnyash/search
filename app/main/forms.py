@@ -1,10 +1,13 @@
 from flask_wtf import FlaskForm
 from wtforms_sqlalchemy.fields import QuerySelectMultipleField
 from wtforms.widgets import ListWidget, CheckboxInput
-from wtforms import StringField, SubmitField, IntegerField, FileField
+from wtforms import StringField, SubmitField, IntegerField, MultipleFileField
+from flask_wtf.file import FileRequired, FileAllowed
 from wtforms.validators import Optional, DataRequired, ValidationError
 from app.models import SourceDatabase, DocumentType
 from flask import request
+
+
 
 
 class SearchForm(FlaskForm):
@@ -44,9 +47,11 @@ class SearchForm(FlaskForm):
             raise ValidationError('Дата публикации задана неверно')
 
 
-class FileForm(FlaskForm):
-    file = FileField('Загрузить файлы')
-    submit = SubmitField('Загрузить')
+# class FilesForm(FlaskForm):
+#     files = MultipleFileField('Загрузить файлы',
+#                               validators=[FileRequired(), FileAllowed({'iso', 'marc', 'dat', 'txt'})],
+#                               render_kw={'multiple': True})
+#     submit = SubmitField('Загрузить')
 
 
 

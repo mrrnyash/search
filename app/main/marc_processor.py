@@ -1,7 +1,8 @@
 from pymarc import MARCReader
-from app.models import *
+from app.models import Record, Keyword, Author, SourceDatabase, DocumentType, Publisher
 from chardet import detect
 import re
+from app import db
 
 DOCUMENT_TYPES = {
     'a': 'Статьи, периодика',
@@ -13,19 +14,20 @@ DOCUMENT_TYPES = {
     's': 'Сериальный ресурс'
 }
 
+# Get file encoding type
+# ! This is very inefficient for big data
+def get_encoding_type(file):
+    with open(file, 'rb') as f:
+        rawdata = f.read()
+    return detect(rawdata)['encoding']
+
 
 class MARCProcessor:
 
-    # Get file encoding type
-    # ! This is very inefficient for big data
-    def _get_encoding_type(self, file):
-        with open(file, 'rb') as f:
-            rawdata = f.read()
-        return detect(rawdata)['encoding']
 
     def process_rusmarc(self, input_data):
         # Get file encoding
-        file_encoding = self._get_encoding_type(input_data)
+        file_encoding = get_encoding_type(input_data)
         # Get source database once
         with open(input_data, 'rb') as fh:
             reader = MARCReader(fh, file_encoding=file_encoding)
@@ -255,7 +257,7 @@ class MARCProcessor:
 
     def process_marc21(self, input_data):
         file_encoding = 'cp1251'
-        # file_encoding = self._get_encoding_type(input_data)
+        # file_encoding = get_encoding_type(input_data)
         with open(input_data, 'rb') as fh:
             reader = MARCReader(fh, file_encoding=file_encoding)
             for record in reader:

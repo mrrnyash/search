@@ -14,6 +14,7 @@ def internal_error(error):
     return render_template('errors/500.html', title='Ошибка 500'), 500
 
 
+
 @bp.app_errorhandler(413)
 def too_large(error):
-    return render_template('errors/413.html', title='Ошибка 413'), 413
+    return "Файл слишком большой", 413

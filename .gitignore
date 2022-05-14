@@ -28,8 +28,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
-# Data files examples for testing
-data/
 
 # My stuff
 test.py
+uploads/

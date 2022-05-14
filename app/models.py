@@ -5,11 +5,9 @@ from hashlib import md5
 from app.search import add_to_index, remove_from_index, query_index
 
 
-
 @login.user_loader
 def load_user(id):
     return User.query.get(int(id))
-
 
 
 class User(UserMixin, db.Model):
@@ -33,7 +31,6 @@ class User(UserMixin, db.Model):
 
     def __repr__(self):
         return '<User {}>'.format(self.username)
-
 
 
 class UserRole(db.Model):
@@ -131,6 +128,7 @@ class Record(SearchableMixin, db.Model):
     udc = db.Column(db.String(255), index=True)
     bbk = db.Column(db.String(255), index=True)
     bibliographic_description = db.Column(db.Text)
+    hash = db.Column(db.Integer, unique=True)
     # Foreign keys
     source_database_id = db.Column(db.Integer,
                                    db.ForeignKey('source_database.id', onupdate="CASCADE", ondelete="RESTRICT"))
