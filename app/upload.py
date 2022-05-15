@@ -1,5 +1,6 @@
 import os
 import re
+import shutil
 
 from chardet import detect
 from pymarc import MARCReader
@@ -19,12 +20,14 @@ DOCUMENT_TYPES = {
 }
 HASH_FILE = 'hashes.txt'
 
+
 # Get file encoding type
 # ! This is very inefficient for big data
 def get_encoding_type(file):
     with open(file, 'rb') as f:
         rawdata = f.read()
     return detect(rawdata)['encoding']
+
 
 class DBLoader:
 
@@ -38,16 +41,35 @@ class DBLoader:
 
     @classmethod
     def _hash(cls, s):
-        record_hash = 0
+        _hash = 0
+
         pass
 
     @classmethod
     def _load_tree(cls):
-        tree = {}
+        a_tree = {}
         for line in open(HASH_FILE):
-            i = int(line)
-            tree.add(i)
-        return tree
+            a_tree.add(int(line))
+        return a_tree
+
+    @classmethod
+    def _save_tree(cls, a_tree):
+        with open(HASH_FILE) as f:
+            for node in a_tree:
+                f.write(str(node))
+
+    @staticmethod
+    def _empty_uploads():
+        folder = current_app.config['UPLOAD_FOLDER']
+        for filename in os.listdir(folder):
+            file_path = os.path.join(folder, filename)
+            try:
+                if os.path.isfile(file_path) or os.path.islink(file_path):
+                    os.unlink(file_path)
+                elif os.path.isdir(file_path):
+                    shutil.rmtree(file_path)
+            except Exception as e:
+                print('Failed to delete %s. Reason: %s' % (file_path, e))
 
     @classmethod
     def _process_rusmarc(cls, input_data):
@@ -72,8 +94,6 @@ class DBLoader:
             reader = MARCReader(fh, file_encoding=file_encoding)
             for record in reader:
                 record_table = Record()
-                record_table.source_database.append(source_database_entry)
-                db.session.add(source_database_entry)
 
                 # Title
                 if record['200'] is not None:
@@ -85,13 +105,9 @@ class DBLoader:
                 document_type_entry = db.session.query(DocumentType).filter_by(
                     name=DOCUMENT_TYPES.get(record.leader[7])).scalar()
                 if document_type_entry is not None:
-                    db.session.add(document_type_entry)
-                    record_table.document_type.append(document_type_entry)
                     record_string += document_type_entry.name
                 else:
                     document_type_entry = DocumentType(name=DOCUMENT_TYPES.get(record.leader[7]))
-                    record_table.document_type.append(document_type_entry)
-                    db.session.add(document_type_entry)
                     record_string += document_type_entry.name
 
                 # Publishing year
@@ -106,12 +122,16 @@ class DBLoader:
                         record_table.url = record['856']['u']
                         record_string += record['856']['u']
 
-                str_hash = cls._hash(record_string)
-                if cls._hash_exists(str_hash):
-                    continue
+                _hash = cls._hash(record_string)
+                tree = cls._get_tree()
+                if _hash not in tree:
+                    tree.add(_hash)
+                    db.session.add(document_type_entry)
+                    db.session.add(source_database_entry)
+                    record_table.document_type.append(document_type_entry)
+                    record_table.source_database.append(source_database_entry)
                 else:
-                    pass
-
+                    continue
 
                 # Description
                 if record['330'] is not None:
@@ -142,13 +162,12 @@ class DBLoader:
                         temp = re.findall(r'\d+', str(record['215']['a']))
                         record_table.pages = int(temp[0])
 
-
-                # udc
+                # UDC
                 if record['675'] is not None:
                     if record['675']['a'] is not None:
                         record_table.udc = str(record['675']['a'])
 
-                # bbk
+                # BBK
                 if record['686'] is not None:
                     if record['686']['a'] is not None:
                         record_table.bbk = str(record['686']['a'])
@@ -295,8 +314,8 @@ class DBLoader:
                 db.session.add(record_table)
                 db.session.commit()
 
-    @staticmethod
-    def _process_marc21(input_data):
+    @classmethod
+    def _process_marc21(cls, input_data):
         record_string = ''
         file_encoding = 'cp1251'
         # file_encoding = get_encoding_type(input_data)
@@ -317,7 +336,6 @@ class DBLoader:
             reader = MARCReader(fh, file_encoding=file_encoding)
             for record in reader:
                 record_table = Record()
-                record_table.source_database.append(source_database_entry)
 
                 # Title
                 if record.title() is not None:
@@ -334,14 +352,10 @@ class DBLoader:
                 document_type_entry = db.session.query(DocumentType).filter_by(
                     name=DOCUMENT_TYPES.get(record.leader[7])).scalar()
                 if document_type_entry is not None:
-                    db.session.add(document_type_entry)
-                    record_table.document_type.append(document_type_entry)
                     record_string += document_type_entry.name
                 else:
                     document_type_entry = DocumentType(name=DOCUMENT_TYPES.get(record.leader[7]))
-                    record_table.document_type.append(document_type_entry)
                     record_string += document_type_entry.name
-                    db.session.add(document_type_entry)
 
                 # URL
                 if record['856'] is not None:
@@ -352,6 +366,17 @@ class DBLoader:
                     record_table.url = record['003']
                     record_string += record['003']
 
+                _hash = cls._hash(record_string)
+                a_tree = cls._load_tree()
+                if _hash not in a_tree:
+                    a_tree.add(_hash)
+                    db.session.add(document_type_entry)
+                    db.session.add(source_database_entry)
+                    record_table.hash = _hash
+                    record_table.document_type.append(document_type_entry)
+                    record_table.source_database.append(source_database_entry)
+                else:
+                    continue
 
                 # Description
                 if record['520'] is not None:
@@ -376,12 +401,13 @@ class DBLoader:
                     if record['300']['a'] is not None:
                         temp = re.findall(r'\d+', str(record['300']['a']))
                         record_table.pages = int(temp[0])
-                # УДК
+
+                # UDC
                 if record['080'] is not None:
                     if record['080']['a'] is not None:
                         record_table.udc = str(record['080']['a'])
 
-                # ББК
+                # BBK
                 if record['084'] is not None:
                     if record['084']['a'] is not None:
                         record_table.bbk = record['084']['a']
@@ -457,20 +483,6 @@ class DBLoader:
                 record_table.bibliographic_description = None
                 db.session.add(record_table)
                 db.session.commit()
-
-    @staticmethod
-    def _delete_files():
-        import os, shutil
-        folder = '/path/to/folder'
-        for filename in os.listdir(folder):
-            file_path = os.path.join(folder, filename)
-            try:
-                if os.path.isfile(file_path) or os.path.islink(file_path):
-                    os.unlink(file_path)
-                elif os.path.isdir(file_path):
-                    shutil.rmtree(file_path)
-            except Exception as e:
-                print('Failed to delete %s. Reason: %s' % (file_path, e))
 
     @staticmethod
     def load():
