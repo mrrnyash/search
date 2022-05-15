@@ -47,12 +47,6 @@ class SearchForm(FlaskForm):
             raise ValidationError('Дата публикации задана неверно')
 
 
-# class FilesForm(FlaskForm):
-#     files = MultipleFileField('Загрузить файлы',
-#                               validators=[FileRequired(), FileAllowed({'iso', 'marc', 'dat', 'txt'})],
-#                               render_kw={'multiple': True})
-#     submit = SubmitField('Загрузить')
-
 
 
 

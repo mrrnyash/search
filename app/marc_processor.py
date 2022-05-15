@@ -24,8 +24,8 @@ def get_encoding_type(file):
 
 class MARCProcessor:
 
-
-    def process_rusmarc(self, input_data):
+    @staticmethod
+    def process_rusmarc( input_data):
         # Get file encoding
         file_encoding = get_encoding_type(input_data)
         # Get source database once
@@ -255,7 +255,8 @@ class MARCProcessor:
                 db.session.add(record_table)
                 db.session.commit()
 
-    def process_marc21(self, input_data):
+    @staticmethod
+    def process_marc21(input_data):
         file_encoding = 'cp1251'
         # file_encoding = get_encoding_type(input_data)
         with open(input_data, 'rb') as fh:

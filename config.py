@@ -30,7 +30,7 @@ class Config(object):
     ALLOWED_EXTENSIONS = os.environ.get('ALLOWED_EXTENSIONS')
     MAX_CONTENT_LENGTH = 500 * 1024 * 1024
 
-    HASH_FILE = 'hashes.txt'
+
 
 
 
