@@ -6,6 +6,7 @@ load_dotenv(os.path.join(basedir, '.env'))
 
 
 class Config(object):
+    ROOT_DIR = os.environ.get('ROOT_DIR')
     SECRET_KEY = os.environ.get('SECRET KEY') or 'you-will-never-guess'
 
     # MySQL

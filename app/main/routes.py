@@ -8,6 +8,7 @@ from app import db
 from werkzeug.utils import secure_filename
 import os
 from app.models import Record, User
+from app.upload import DBLoader
 
 
 @bp.before_app_request
@@ -16,13 +17,14 @@ def before_request():
     db.session.commit()
     g.sum_records = Record.query.count()
 
+
 @bp.route('/', methods=['GET', 'POST'])
 @bp.route('/index', methods=['GET', 'POST'])
 def index():
     return render_template(
-            'index.html',
-            title='Главная'
-        )
+        'index.html',
+        title='Главная'
+    )
 
 
 @bp.route('/search')
@@ -75,7 +77,6 @@ def admin():
     )
 
 
-
 @bp.route('/control')
 @login_required
 def control():
@@ -83,6 +84,7 @@ def control():
         'control.html',
         title='Панель управления'
     )
+
 
 @bp.route('/control', methods=['POST'])
 @login_required
@@ -94,8 +96,8 @@ def upload_files():
         if file_ext not in current_app.config['ALLOWED_EXTENSIONS']:
             return "Недопустимое разрешение файла", 400
         uploaded_file.save(os.path.join(current_app.config['UPLOAD_FOLDER'], filename))
+    DBLoader.load()
     return '', 204
-
 
 
 @bp.route('/user/<username>')

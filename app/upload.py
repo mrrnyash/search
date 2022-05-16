@@ -1,8 +1,7 @@
 import os
 import re
-import shutil
 
-from chardet import detect
+from chardet.universaldetector import UniversalDetector
 from pymarc import MARCReader
 from app.models import Record, Author, Keyword, \
     SourceDatabase, DocumentType, Publisher
@@ -18,83 +17,120 @@ DOCUMENT_TYPES = {
     'm': 'Монографический ресурс',
     's': 'Сериальный ресурс'
 }
-HASH_FILE = 'hashes.txt'
+HASH_FILE = str(os.path.join(os.path.dirname(__file__), '/hashes.txt'))
 
 
 # Get file encoding type
-# ! This is very inefficient for big data
 def get_encoding_type(file):
-    with open(file, 'rb') as f:
-        rawdata = f.read()
-    return detect(rawdata)['encoding']
+    data = open(file, 'rb')
+    detector = UniversalDetector()
+    for line in data.readlines():
+        detector.feed(line)
+        if detector.done:
+            break
+    detector.close()
+    data.close()
+    return detector.result['encoding']
+
+
+def bpow(a, n, mod):
+    res = 1
+    while n:
+        if n & 1:
+            res = (res * a) % mod
+        a = (a * a) % mod
+        n >>= 1
+    return res
 
 
 class DBLoader:
-
-    @staticmethod
-    def _dir_empty():
-        d = os.listdir(current_app.config['UPLOAD_FOLDER'])
-        if len(d) == 0:
-            return True
-        else:
-            return False
+    N = 1000
+    p = 199
+    mod = 1e9 + 9
+    P = []
 
     @classmethod
-    def _hash(cls, s):
-        _hash = 0
-
-        pass
-
-    @classmethod
-    def _load_tree(cls):
-        a_tree = {}
-        for line in open(HASH_FILE):
-            a_tree.add(int(line))
-        return a_tree
-
-    @classmethod
-    def _save_tree(cls, a_tree):
-        with open(HASH_FILE) as f:
-            for node in a_tree:
-                f.write(str(node))
-
-    @staticmethod
-    def _empty_uploads():
-        folder = current_app.config['UPLOAD_FOLDER']
-        for filename in os.listdir(folder):
-            file_path = os.path.join(folder, filename)
-            try:
-                if os.path.isfile(file_path) or os.path.islink(file_path):
-                    os.unlink(file_path)
-                elif os.path.isdir(file_path):
-                    shutil.rmtree(file_path)
-            except Exception as e:
-                print('Failed to delete %s. Reason: %s' % (file_path, e))
-
-    @classmethod
-    def _process_rusmarc(cls, input_data):
-        record_string = ''
+    def _get_file_metadata(cls, input_data):
+        marc_file = os.path.join(current_app.config['UPLOAD_FOLDER'], input_data)
         # Get file encoding
-        file_encoding = get_encoding_type(input_data)
+        file_encoding = get_encoding_type(marc_file)
         # Get source database once
-        with open(input_data, 'rb') as fh:
+        with open(marc_file, 'rb') as fh:
             reader = MARCReader(fh, file_encoding=file_encoding)
             for record in reader:
                 if record['801'] is not None:
                     if record['801']['b'] is not None:
                         source_database_name = record['801']['b']
                         break
+                elif record['040'] is not None:
+                    if record['040']['a'] is not None:
+                        source_database_name = record['040']['a']
+                        break
+        return source_database_name, file_encoding
 
+    @classmethod
+    def _gen_p(cls):
+        for i in range(0, cls.N, 1):
+            cls.P.append(bpow(cls.p, i, cls.mod))
+
+    @classmethod
+    def _hash(cls, s):
+        s_hash = 0
+        if len(cls.P) == 0:
+            cls._gen_p()
+
+        for i in range(0, len(s), 1):
+            s_hash += (ord(s[i]) * cls.P[i]) % cls.mod
+
+        return int(s_hash)
+
+    @classmethod
+    def _load_tree(cls):
+        a_tree = set()
+        file = open(HASH_FILE, 'r')
+        for line in file:
+            a_tree.add(int(line))
+        return a_tree
+
+    @classmethod
+    def _save_tree(cls, a_tree):
+        f = open(HASH_FILE, 'w+')
+        for node in a_tree:
+            f.write(str(node) + '\n')
+        f.close()
+
+    @staticmethod
+    def _empty_uploads():
+        dir = current_app.config['UPLOAD_FOLDER']
+        for f in os.listdir(dir):
+            os.remove(os.path.join(dir, f))
+
+    @classmethod
+    def process_rusmarc(cls, input_data):
+        with open(input_data, 'rb') as fh:
+            reader = MARCReader(fh, file_encoding='utf-8')
+            for record in reader:
+                if record['801'] is not None:
+                    if record['801']['b'] is not None:
+                        source_database_name = record['801']['b']
+                        break
+                elif record['040'] is not None:
+                    if record['040']['a'] is not None:
+                        source_database_name = record['040']['a']
+                        break
+        # marc_file = os.path.join(current_app.config['UPLOAD_FOLDER'], input_data)
+        # source_database_name, file_encoding = cls._get_file_metadata(marc_file)
         source_database_entry = db.session.query(SourceDatabase).filter_by(name=source_database_name).scalar()
-        record_string += source_database_entry.name
         if source_database_entry is None:
             source_database_entry = SourceDatabase(name=source_database_name)
 
+        # a_tree = cls._load_tree()
         with open(input_data, 'rb') as fh:
-            reader = MARCReader(fh, file_encoding=file_encoding)
+            reader = MARCReader(fh, file_encoding='utf-8')
             for record in reader:
+                record_string = ''
+                record_string += source_database_entry.name
                 record_table = Record()
-
                 # Title
                 if record['200'] is not None:
                     if record['200']['a'] is not None:
@@ -122,16 +158,15 @@ class DBLoader:
                         record_table.url = record['856']['u']
                         record_string += record['856']['u']
 
-                _hash = cls._hash(record_string)
-                tree = cls._get_tree()
-                if _hash not in tree:
-                    tree.add(_hash)
-                    db.session.add(document_type_entry)
-                    db.session.add(source_database_entry)
-                    record_table.document_type.append(document_type_entry)
-                    record_table.source_database.append(source_database_entry)
-                else:
-                    continue
+                # _hash = cls._hash(record_string)
+                # if _hash not in a_tree:
+                #     a_tree.add(_hash)
+                db.session.add(document_type_entry)
+                db.session.add(source_database_entry)
+                record_table.document_type.append(document_type_entry)
+                record_table.source_database.append(source_database_entry)
+                # else:
+                #     continue
 
                 # Description
                 if record['330'] is not None:
@@ -313,40 +348,38 @@ class DBLoader:
                 record_table.bibliographic_description = None
                 db.session.add(record_table)
                 db.session.commit()
+        # cls._save_tree(a_tree)
 
     @classmethod
-    def _process_marc21(cls, input_data):
-        record_string = ''
-        file_encoding = 'cp1251'
-        # file_encoding = get_encoding_type(input_data)
+    def process_marc21(cls, input_data):
+        # marc_file = os.path.join(current_app.config['UPLOAD_FOLDER'], input_data)
+        # source_database_name = cls._get_file_metadata(input_data)
         with open(input_data, 'rb') as fh:
-            reader = MARCReader(fh, file_encoding=file_encoding)
+            reader = MARCReader(fh, file_encoding='cp1251')
             for record in reader:
-                if record['040'] is not None:
+                if record['801'] is not None:
+                    if record['801']['b'] is not None:
+                        source_database_name = record['801']['b']
+                        break
+                elif record['040'] is not None:
                     if record['040']['a'] is not None:
                         source_database_name = record['040']['a']
                         break
-
         source_database_entry = db.session.query(SourceDatabase).filter_by(name=source_database_name).scalar()
-        record_string += source_database_entry.name
         if source_database_entry is None:
             source_database_entry = SourceDatabase(name=source_database_name)
 
+        # a_tree = cls._load_tree()
         with open(input_data, 'rb') as fh:
-            reader = MARCReader(fh, file_encoding=file_encoding)
+            reader = MARCReader(fh, file_encoding='cp1251')
             for record in reader:
+                record_string = ''
+                record_string += source_database_entry.name
                 record_table = Record()
-
                 # Title
                 if record.title() is not None:
                     record_table.title = record.title()
                     record_string += record.title()
-
-                # Publishing year
-                if record['260'] is not None:
-                    if record['260']['c'] is not None:
-                        record_table.publishing_year = record['260']['c']
-                        record_string += str(record['260']['c'])
 
                 # Document type
                 document_type_entry = db.session.query(DocumentType).filter_by(
@@ -357,6 +390,12 @@ class DBLoader:
                     document_type_entry = DocumentType(name=DOCUMENT_TYPES.get(record.leader[7]))
                     record_string += document_type_entry.name
 
+                # Publishing year
+                if record['260'] is not None:
+                    if record['260']['c'] is not None:
+                        record_table.publishing_year = record['260']['c']
+                        record_string += str(record['260']['c'])
+
                 # URL
                 if record['856'] is not None:
                     if record['856']['u'] is not None:
@@ -366,17 +405,16 @@ class DBLoader:
                     record_table.url = record['003']
                     record_string += record['003']
 
-                _hash = cls._hash(record_string)
-                a_tree = cls._load_tree()
-                if _hash not in a_tree:
-                    a_tree.add(_hash)
-                    db.session.add(document_type_entry)
-                    db.session.add(source_database_entry)
-                    record_table.hash = _hash
-                    record_table.document_type.append(document_type_entry)
-                    record_table.source_database.append(source_database_entry)
-                else:
-                    continue
+                # _hash = cls._hash(record_string)
+                # if _hash not in a_tree:
+                #     a_tree.add(_hash)
+                db.session.add(document_type_entry)
+                db.session.add(source_database_entry)
+                # record_table.hash = _hash
+                record_table.document_type.append(document_type_entry)
+                record_table.source_database.append(source_database_entry)
+                # else:
+                #     continue
 
                 # Description
                 if record['520'] is not None:
@@ -483,11 +521,17 @@ class DBLoader:
                 record_table.bibliographic_description = None
                 db.session.add(record_table)
                 db.session.commit()
+        # cls._save_tree(a_tree)
 
-    @staticmethod
-    def load():
-        f = open(HASH_FILE, 'w')
+    @classmethod
+    def load(cls):
         directory_in_str = str(current_app.config['UPLOAD_FOLDER'])
         directory = os.fsencode(directory_in_str)
         for file in os.listdir(directory):
             filename = os.fsdecode(file)
+            source_db_name = cls._get_file_metadata(filename)[0]
+            if source_db_name == 'Издательство Лань' or source_db_name == 'RUCONT':
+                cls.process_rusmarc(filename)
+            elif source_db_name == 'ИКО Юрайт':
+                cls.process_marc21(filename)
+        cls._empty_uploads()
