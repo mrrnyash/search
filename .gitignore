@@ -31,4 +31,4 @@ venv.bak/
 
 # My stuff
 test.py
-app/uploads/
+uploads/

@@ -8,8 +8,6 @@ from app.models import SourceDatabase, DocumentType
 from flask import request
 
 
-
-
 class SearchForm(FlaskForm):
     q = StringField('', validators=[], render_kw={'placeholder': 'Поисковый запрос'})
 
@@ -45,11 +43,6 @@ class SearchForm(FlaskForm):
     def validate_pubyear(self, pubyear1, pubyear2):
         if pubyear1 > pubyear2:
             raise ValidationError('Дата публикации задана неверно')
-
-
-
-
-
 
 
 

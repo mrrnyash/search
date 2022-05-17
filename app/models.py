@@ -77,26 +77,26 @@ class SearchableMixin(object):
         return cls.query.filter(cls.id.in_(ids)).order_by(
             db.case(when, value=cls.id)), total
 
-    # @classmethod
-    # def before_commit(cls, session):
-    #     session._changes = {
-    #         'add': list(session.new),
-    #         'update': list(session.dirty),
-    #         'delete': list(session.deleted)
-    #     }
-    #
-    # @classmethod
-    # def after_commit(cls, session):
-    #     for obj in session._changes['add']:
-    #         if isinstance(obj, SearchableMixin):
-    #             add_to_index(obj.__tablename__, obj)
-    #     for obj in session._changes['update']:
-    #         if isinstance(obj, SearchableMixin):
-    #             add_to_index(obj.__tablename__, obj)
-    #     for obj in session._changes['delete']:
-    #         if isinstance(obj, SearchableMixin):
-    #             remove_from_index(obj.__tablename__, obj)
-    #     session._changes = None
+    @classmethod
+    def before_commit(cls, session):
+        session._changes = {
+            'add': list(session.new),
+            'update': list(session.dirty),
+            'delete': list(session.deleted)
+        }
+
+    @classmethod
+    def after_commit(cls, session):
+        for obj in session._changes['add']:
+            if isinstance(obj, SearchableMixin):
+                add_to_index(obj.__tablename__, obj)
+        for obj in session._changes['update']:
+            if isinstance(obj, SearchableMixin):
+                add_to_index(obj.__tablename__, obj)
+        for obj in session._changes['delete']:
+            if isinstance(obj, SearchableMixin):
+                remove_from_index(obj.__tablename__, obj)
+        session._changes = None
 
     @classmethod
     def reindex(cls):
@@ -104,8 +104,8 @@ class SearchableMixin(object):
             add_to_index(cls.__tablename__, obj)
 
 
-# db.event.listen(db.session, 'before_commit', SearchableMixin.before_commit)
-# db.event.listen(db.session, 'after_commit', SearchableMixin.after_commit)
+db.event.listen(db.session, 'before_commit', SearchableMixin.before_commit)
+db.event.listen(db.session, 'after_commit', SearchableMixin.after_commit)
 
 
 class Record(SearchableMixin, db.Model):
@@ -128,7 +128,7 @@ class Record(SearchableMixin, db.Model):
     udc = db.Column(db.String(255), index=True)
     bbk = db.Column(db.String(255), index=True)
     bibliographic_description = db.Column(db.Text)
-    hash = db.Column(db.Integer, unique=True)
+    hash = db.Column(db.BigInteger, unique=True)
     # Foreign keys
     source_database_id = db.Column(db.Integer,
                                    db.ForeignKey('source_database.id', onupdate="CASCADE", ondelete="RESTRICT"))
@@ -162,7 +162,7 @@ class Author(db.Model):
 
 class Keyword(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(255), index=True, nullable=False, unique=True)
+    name = db.Column(db.Text)
     keyword_records = db.relationship('Record', secondary=record_keyword_assoc_table,
                                       back_populates='keywords', lazy='subquery', uselist=True)
 

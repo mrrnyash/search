@@ -88,16 +88,19 @@ def control():
 
 @bp.route('/control', methods=['POST'])
 @login_required
-def upload_files():
-    uploaded_file = request.files['file']
-    filename = secure_filename(uploaded_file.filename)
-    if filename != '':
-        file_ext = os.path.splitext(filename)[1]
-        if file_ext not in current_app.config['ALLOWED_EXTENSIONS']:
-            return "Недопустимое разрешение файла", 400
-        uploaded_file.save(os.path.join(current_app.config['UPLOAD_FOLDER'], filename))
-    DBLoader.load()
-    return '', 204
+def upload():
+    loader = DBLoader()
+    for uploaded_file in request.files.getlist('file'):
+        filename = secure_filename(uploaded_file.filename)
+        if filename != '':
+            file_ext = os.path.splitext(filename)[1]
+            if file_ext not in current_app.config['ALLOWED_EXTENSIONS']:
+                abort(400)
+            uploaded_file.save(os.path.join(current_app.config['UPLOAD_FOLDER'], filename))
+    loader.upload_to_database()
+    return redirect(url_for('main.control'))
+
+
 
 
 @bp.route('/user/<username>')
