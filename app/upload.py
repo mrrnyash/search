@@ -146,121 +146,156 @@ class DBLoader:
         with open(marc_file, 'rb') as fh:
             reader = MARCReader(fh, file_encoding=file_encoding)
             for record in reader:
-                record_string = ''
-                record_string += source_database_entry.name
-                record_table = Record()
+                if record is not None:
+                    record_string = ''
+                    record_string += source_database_entry.name
+                    record_table = Record()
 
-                # Title
-                if record['200'] is not None:
-                    if record['200']['a'] is not None:
-                        record_table.title = record['200']['a']
-                        record_string += record['200']['a']
+                    # Title
+                    if record['200'] is not None:
+                        if record['200']['a'] is not None:
+                            record_table.title = record['200']['a']
+                            record_string += record['200']['a']
 
-                # Document type
-                document_type_entry = db.session.query(DocumentType).filter_by(
-                    name=DOCUMENT_TYPES.get(record.leader[7])).scalar()
-                if document_type_entry is not None:
-                    record_string += document_type_entry.name
-                else:
-                    document_type_entry = DocumentType(name=DOCUMENT_TYPES.get(record.leader[7]))
-                    record_string += document_type_entry.name
+                    # Document type
+                    document_type_entry = db.session.query(DocumentType).filter_by(
+                        name=DOCUMENT_TYPES.get(record.leader[7])).scalar()
+                    if document_type_entry is not None:
+                        record_string += document_type_entry.name
+                    else:
+                        document_type_entry = DocumentType(name=DOCUMENT_TYPES.get(record.leader[7]))
+                        record_string += document_type_entry.name
 
-                # Publishing year
-                if record['210'] is not None:
-                    if record['210']['d'] is not None:
-                        record_table.publishing_year = int(record['210']['d'])
-                        record_string += record['210']['d']
+                    # Publishing year
+                    if record['210'] is not None:
+                        if record['210']['d'] is not None:
+                            record_table.publishing_year = int(record['210']['d'])
+                            record_string += record['210']['d']
 
-                # URL
-                if record['856'] is not None:
-                    if record['856']['u'] is not None:
-                        record_table.url = record['856']['u']
-                        record_string += record['856']['u']
+                    # URL
+                    if record['856'] is not None:
+                        if record['856']['u'] is not None:
+                            record_table.url = record['856']['u']
+                            record_string += record['856']['u']
 
-                _hash = cls._hash(record_string)
-                if _hash not in a_tree:
-                    a_tree.add(_hash)
-                    record_table.hash_1 = str(_hash[0])
-                    record_table.hash_2 = str(_hash[1])
-                    db.session.add(document_type_entry)
-                    db.session.add(source_database_entry)
-                    record_table.document_type.append(document_type_entry)
-                    record_table.source_database.append(source_database_entry)
-                else:
-                    continue
+                    _hash = cls._hash(record_string)
+                    if _hash not in a_tree:
+                        a_tree.add(_hash)
+                        record_table.hash_1 = str(_hash[0])
+                        record_table.hash_2 = str(_hash[1])
+                        db.session.add(document_type_entry)
+                        db.session.add(source_database_entry)
+                        record_table.document_type.append(document_type_entry)
+                        record_table.source_database.append(source_database_entry)
+                    else:
+                        continue
 
-                # Description
-                if record['330'] is not None:
-                    if record['330']['a'] is not None:
-                        record_table.description = record['330']['a']
+                    # Description
+                    if record['330'] is not None:
+                        if record['330']['a'] is not None:
+                            record_table.description = record['330']['a']
 
-                # Cover
-                if record['953'] is not None:
-                    if record['953']['a'] is not None:
-                        record_table.cover = record['953']['a']
-                elif record['956'] is not None:
-                    if record['956']['a'] is not None:
-                        record_table.cover = record['956']['a']
+                    # Cover
+                    if record['953'] is not None:
+                        if record['953']['a'] is not None:
+                            record_table.cover = record['953']['a']
+                    elif record['956'] is not None:
+                        if record['956']['a'] is not None:
+                            record_table.cover = record['956']['a']
 
-                # ISBN
-                if record['010'] is not None:
-                    if record['010']['a'] is not None:
-                        record_table.isbn = re.sub('\D', '', record['010']['a'])
+                    # ISBN
+                    if record['010'] is not None:
+                        if record['010']['a'] is not None:
+                            record_table.isbn = re.sub('\D', '', record['010']['a'])
 
-                # ISSN
-                if record['011'] is not None:
-                    if record['011']['a'] is not None:
-                        record_table.issn = re.sub('\D', '', record['011']['a'])
+                    # ISSN
+                    if record['011'] is not None:
+                        if record['011']['a'] is not None:
+                            record_table.issn = re.sub('\D', '', record['011']['a'])
 
-                # Pages
-                if record['215'] is not None:
-                    if record['215']['a'] is not None:
-                        temp = re.findall(r'\d+', str(record['215']['a']))
-                        if len(temp) != 0:
-                            record_table.pages = int(temp[0])
+                    # Pages
+                    if record['215'] is not None:
+                        if record['215']['a'] is not None:
+                            temp = re.findall(r'\d+', str(record['215']['a']))
+                            if len(temp) != 0:
+                                record_table.pages = int(temp[0])
 
-                # UDC
-                if record['675'] is not None:
-                    if record['675']['a'] is not None:
-                        record_table.udc = str(record['675']['a'])
+                    # UDC
+                    if record['675'] is not None:
+                        if record['675']['a'] is not None:
+                            record_table.udc = str(record['675']['a'])
 
-                # BBK
-                if record['686'] is not None:
-                    if record['686']['a'] is not None:
-                        record_table.bbk = str(record['686']['a'])
+                    # BBK
+                    if record['686'] is not None:
+                        if record['686']['a'] is not None:
+                            record_table.bbk = str(record['686']['a'])
 
-                # Authors
-                if record['700'] is not None:
-                    if record['700']['a'] is not None:
-                        if record['700']['b'] is not None:
-                            author_entry = db.session.query(Author).filter_by(
-                                name=record['700']['a'] + ' ' + record['700']['b']).scalar()
-                            if author_entry is not None:
-                                record_table.authors.append(author_entry)
-                                db.session.add(author_entry)
-                            else:
-                                author_entry = Author(name=record['700']['a'] + ' ' + record['700']['b'])
-                                record_table.authors.append(author_entry)
-                                db.session.add(author_entry)
-                        elif record['700']['g'] is not None:
-                            initials = record['700']['g'].split()
-                            for i in range(len(initials)):
-                                initials[i] = initials[i][0] + '.'
-                            initials = ' '.join([str(item) for item in initials])
-                            author_entry = db.session.query(Author).filter_by(
-                                name=record['700']['a'] + ' ' + initials).scalar()
-                            if author_entry is not None:
-                                record_table.authors.append(author_entry)
-                                db.session.add(author_entry)
-                            else:
-                                author_entry = Author(name=record['700']['a'] + ' ' + initials)
-                                record_table.authors.append(author_entry)
-                                db.session.add(author_entry)
-                if record['701'] is not None:
-                    if record['701']['a'] is not None:
-                        if record['701']['b'] is not None:
+                    # Authors
+                    if record['700'] is not None:
+                        if record['700']['a'] is not None:
+                            if record['700']['b'] is not None:
+                                author_entry = db.session.query(Author).filter_by(
+                                    name=record['700']['a'] + ' ' + record['700']['b']).scalar()
+                                if author_entry is not None:
+                                    record_table.authors.append(author_entry)
+                                    db.session.add(author_entry)
+                                else:
+                                    author_entry = Author(name=record['700']['a'] + ' ' + record['700']['b'])
+                                    record_table.authors.append(author_entry)
+                                    db.session.add(author_entry)
+                            elif record['700']['g'] is not None:
+                                initials = record['700']['g'].split()
+                                for i in range(len(initials)):
+                                    initials[i] = initials[i][0] + '.'
+                                initials = ' '.join([str(item) for item in initials])
+                                author_entry = db.session.query(Author).filter_by(
+                                    name=record['700']['a'] + ' ' + initials).scalar()
+                                if author_entry is not None:
+                                    record_table.authors.append(author_entry)
+                                    db.session.add(author_entry)
+                                else:
+                                    author_entry = Author(name=record['700']['a'] + ' ' + initials)
+                                    record_table.authors.append(author_entry)
+                                    db.session.add(author_entry)
+                    if record['701'] is not None:
+                        if record['701']['a'] is not None:
+                            if record['701']['b'] is not None:
+                                authors_list = []
+                                for f in record.get_fields('701'):
+                                    if f['a'] is not None and f['b'] is not None:
+                                        authors_list.append(f['a'] + ' ' + f['b'])
+                                for val in authors_list:
+                                    author_entry = db.session.query(Author).filter_by(name=val).scalar()
+                                    if author_entry is not None:
+                                        record_table.authors.append(author_entry)
+                                        db.session.add(author_entry)
+                                    else:
+                                        author_entry = Author(name=val)
+                                        record_table.authors.append(author_entry)
+                                        db.session.add(author_entry)
+                            elif record['701']['a'] is not None:
+                                if record['701']['g'] is not None:
+                                    authors_list = []
+                                    for f in record.get_fields('701'):
+                                        if f['a'] is not None and f['g'] is not None:
+                                            initials = f['g'].split()
+                                            for i in range(len(initials)):
+                                                initials[i] = initials[i][0] + '.'
+                                            initials = ' '.join([str(item) for item in initials])
+                                            authors_list.append(f['a'] + ' ' + initials)
+                                    for val in authors_list:
+                                        author_entry = db.session.query(Author).filter_by(name=val).scalar()
+                                        if author_entry is not None:
+                                            record_table.authors.append(author_entry)
+                                            db.session.add(author_entry)
+                                        else:
+                                            author_entry = Author(name=val)
+                                            record_table.authors.append(author_entry)
+                                            db.session.add(author_entry)
+                    if record['702'] is not None:
+                        if record['702']['a'] is not None and record['702']['b'] is not None:
                             authors_list = []
-                            for f in record.get_fields('701'):
+                            for f in record.get_fields('702'):
                                 if f['a'] is not None and f['b'] is not None:
                                     authors_list.append(f['a'] + ' ' + f['b'])
                             for val in authors_list:
@@ -272,16 +307,16 @@ class DBLoader:
                                     author_entry = Author(name=val)
                                     record_table.authors.append(author_entry)
                                     db.session.add(author_entry)
-                        elif record['701']['a'] is not None:
-                            if record['701']['g'] is not None:
+                        elif record['702']['a'] is not None:
+                            if record['702']['g'] is not None:
                                 authors_list = []
-                                for f in record.get_fields('701'):
+                                for f in record.get_fields('702'):
                                     if f['a'] is not None and f['g'] is not None:
                                         initials = f['g'].split()
-                                        for i in range(len(initials)):
-                                            initials[i] = initials[i][0] + '.'
-                                        initials = ' '.join([str(item) for item in initials])
-                                        authors_list.append(f['a'] + ' ' + initials)
+                                    for i in range(len(initials)):
+                                        initials[i] = initials[i][0] + '.'
+                                    initials = ' '.join([str(item) for item in initials])
+                                    authors_list.append(f['a'] + ' ' + initials)
                                 for val in authors_list:
                                     author_entry = db.session.query(Author).filter_by(name=val).scalar()
                                     if author_entry is not None:
@@ -291,84 +326,50 @@ class DBLoader:
                                         author_entry = Author(name=val)
                                         record_table.authors.append(author_entry)
                                         db.session.add(author_entry)
-                if record['702'] is not None:
-                    if record['702']['a'] is not None and record['702']['b'] is not None:
-                        authors_list = []
-                        for f in record.get_fields('702'):
-                            if f['a'] is not None and f['b'] is not None:
-                                authors_list.append(f['a'] + ' ' + f['b'])
-                        for val in authors_list:
-                            author_entry = db.session.query(Author).filter_by(name=val).scalar()
-                            if author_entry is not None:
-                                record_table.authors.append(author_entry)
-                                db.session.add(author_entry)
+
+                    # Publisher
+                    if record['210'] is not None:
+                        if record['210']['c'] is not None:
+                            publisher_entry = db.session.query(Publisher).filter_by(name=record['210']['c']).scalar()
+                            if publisher_entry is not None:
+                                db.session.add(publisher_entry)
+                                record_table.publisher.append(publisher_entry)
                             else:
-                                author_entry = Author(name=val)
-                                record_table.authors.append(author_entry)
-                                db.session.add(author_entry)
-                    elif record['702']['a'] is not None:
-                        if record['702']['g'] is not None:
-                            authors_list = []
-                            for f in record.get_fields('702'):
-                                if f['a'] is not None and f['g'] is not None:
-                                    initials = f['g'].split()
-                                for i in range(len(initials)):
-                                    initials[i] = initials[i][0] + '.'
-                                initials = ' '.join([str(item) for item in initials])
-                                authors_list.append(f['a'] + ' ' + initials)
-                            for val in authors_list:
-                                author_entry = db.session.query(Author).filter_by(name=val).scalar()
-                                if author_entry is not None:
-                                    record_table.authors.append(author_entry)
-                                    db.session.add(author_entry)
+                                publisher_entry = Publisher(name=record['210']['c'])
+                                record_table.publisher.append(publisher_entry)
+                                db.session.add(publisher_entry)
+                    # Keywords
+                    if record['610'] is not None:
+                        if record['610']['a'] is not None:
+                            keywords_list = []
+                            for f in record.get_fields('610'):
+                                keywords_list.append(f['a'].lower())
+                            for val in keywords_list:
+                                temp = []
+                                if '--' in val:
+                                    temp = val.split('--')
+                                    keywords_list.remove(val)
+                                if ',' in val:
+                                    temp = val.split(',')
+                                    keywords_list.remove(val)
+                                for val1 in temp:
+                                    if val1 != ' ' and val1 != '':
+                                        keywords_list.append(val1.strip())
+                            keywords_list = list(set(keywords_list))
+                            for val in keywords_list:
+                                val = val.replace('"', '')
+                                keyword_entry = db.session.query(Keyword).filter_by(name=val).scalar()
+                                if keyword_entry is not None:
+                                    record_table.keywords.append(keyword_entry)
+                                    db.session.add(keyword_entry)
                                 else:
-                                    author_entry = Author(name=val)
-                                    record_table.authors.append(author_entry)
-                                    db.session.add(author_entry)
+                                    keyword_entry = Keyword(name=val)
+                                    record_table.keywords.append(keyword_entry)
+                                    db.session.add(keyword_entry)
 
-                # Publisher
-                if record['210'] is not None:
-                    if record['210']['c'] is not None:
-                        publisher_entry = db.session.query(Publisher).filter_by(name=record['210']['c']).scalar()
-                        if publisher_entry is not None:
-                            db.session.add(publisher_entry)
-                            record_table.publisher.append(publisher_entry)
-                        else:
-                            publisher_entry = Publisher(name=record['210']['c'])
-                            record_table.publisher.append(publisher_entry)
-                            db.session.add(publisher_entry)
-                # Keywords
-                if record['610'] is not None:
-                    if record['610']['a'] is not None:
-                        keywords_list = []
-                        for f in record.get_fields('610'):
-                            keywords_list.append(f['a'].lower())
-                        for val in keywords_list:
-                            temp = []
-                            if '--' in val:
-                                temp = val.split('--')
-                                keywords_list.remove(val)
-                            if ',' in val:
-                                temp = val.split(',')
-                                keywords_list.remove(val)
-                            for val1 in temp:
-                                if val1 != ' ' and val1 != '':
-                                    keywords_list.append(val1.strip())
-                        keywords_list = list(set(keywords_list))
-                        for val in keywords_list:
-                            val = val.replace('"', '')
-                            keyword_entry = db.session.query(Keyword).filter_by(name=val).scalar()
-                            if keyword_entry is not None:
-                                record_table.keywords.append(keyword_entry)
-                                db.session.add(keyword_entry)
-                            else:
-                                keyword_entry = Keyword(name=val)
-                                record_table.keywords.append(keyword_entry)
-                                db.session.add(keyword_entry)
-
-                # TODO: generate bibliographic description
-                record_table.bibliographic_description = None
-                db.session.add(record_table)
+                    # TODO: generate bibliographic description
+                    record_table.bibliographic_description = None
+                    db.session.add(record_table)
         cls._save_tree(a_tree)
 
     @classmethod
