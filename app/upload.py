@@ -18,7 +18,7 @@ DOCUMENT_TYPES = {
     'm': 'Монографический ресурс',
     's': 'Сериальный ресурс'
 }
-HASH_FILE = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', 'hashes.txt'))
+HASH_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'hashes.txt'))
 file = Path(HASH_FILE)
 file.touch(exist_ok=True)
 ENCODING_TYPES = ['cp1251', 'utf-8']
@@ -52,9 +52,12 @@ def bpow(a, n, mod):
 
 class DBLoader:
     N = 1000
-    p = 199
-    mod = 1e9 + 9
-    P = []
+    p1 = 199
+    p2 = 203
+    mod1 = 1e18 + 7
+    mod2 = 1e18 + 9
+    P1 = []
+    P2 = []
 
     @classmethod
     def _probe_encoding_types(cls, file):
@@ -90,33 +93,40 @@ class DBLoader:
 
     @classmethod
     def _gen_p(cls):
+        cls.P1 = []
+        cls.P2 = []
         for i in range(0, cls.N, 1):
-            cls.P.append(bpow(cls.p, i, cls.mod))
+            cls.P1.append(bpow(cls.p1, i, cls.mod1))
+        for i in range(0, cls.N, 1):
+            cls.P2.append(bpow(cls.p2, i, cls.mod2))
 
     @classmethod
     def _hash(cls, s):
-        s_hash = 0
-        if len(cls.P) == 0:
+        s_hash_1 = 0
+        s_hash_2 = 0
+        if len(cls.P1) == 0:
             cls._gen_p()
 
         for i in range(0, len(s), 1):
-            s_hash += (ord(s[i]) * cls.P[i]) % cls.mod
+            s_hash_1 += (ord(s[i]) * cls.P1[i]) % cls.mod1
+            s_hash_2 += (ord(s[i]) * cls.P2[i]) % cls.mod2
 
-        return int(s_hash)
+        return int(s_hash_1), int(s_hash_2)
 
     @classmethod
     def _load_tree(cls):
         a_tree = set()
         file = open(HASH_FILE, 'r')
         for line in file:
-            a_tree.add(int(line))
+            pair = list(map(int, line.split(' ')))
+            a_tree.add((pair[0], pair[1]))
         return a_tree
 
     @classmethod
     def _save_tree(cls, a_tree):
         f = open(HASH_FILE, 'w+')
         for node in a_tree:
-            f.write(str(node) + '\n')
+            f.write(str(node[0]) + ' ' + str(node[1]) + '\n')
         f.close()
 
     @staticmethod
@@ -139,11 +149,12 @@ class DBLoader:
                 record_string = ''
                 record_string += source_database_entry.name
                 record_table = Record()
+
                 # Title
                 if record['200'] is not None:
                     if record['200']['a'] is not None:
                         record_table.title = record['200']['a']
-                        record_string += record_table.title
+                        record_string += record['200']['a']
 
                 # Document type
                 document_type_entry = db.session.query(DocumentType).filter_by(
@@ -169,6 +180,8 @@ class DBLoader:
                 _hash = cls._hash(record_string)
                 if _hash not in a_tree:
                     a_tree.add(_hash)
+                    record_table.hash_1 = str(_hash[0])
+                    record_table.hash_2 = str(_hash[1])
                     db.session.add(document_type_entry)
                     db.session.add(source_database_entry)
                     record_table.document_type.append(document_type_entry)
@@ -203,7 +216,8 @@ class DBLoader:
                 if record['215'] is not None:
                     if record['215']['a'] is not None:
                         temp = re.findall(r'\d+', str(record['215']['a']))
-                        record_table.pages = int(temp[0])
+                        if len(temp) != 0:
+                            record_table.pages = int(temp[0])
 
                 # UDC
                 if record['675'] is not None:
@@ -406,7 +420,8 @@ class DBLoader:
                     a_tree.add(_hash)
                     db.session.add(document_type_entry)
                     db.session.add(source_database_entry)
-                    record_table.hash = _hash
+                    record_table.hash_1 = _hash[0]
+                    record_table.hash_2 = _hash[1]
                     record_table.document_type.append(document_type_entry)
                     record_table.source_database.append(source_database_entry)
                 else:

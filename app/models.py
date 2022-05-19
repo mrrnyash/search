@@ -128,7 +128,8 @@ class Record(SearchableMixin, db.Model):
     udc = db.Column(db.String(255), index=True)
     bbk = db.Column(db.String(255), index=True)
     bibliographic_description = db.Column(db.Text)
-    hash = db.Column(db.BigInteger, unique=True)
+    hash_1 = db.Column(db.String(255), unique=True)
+    hash_2 = db.Column(db.String(255), unique=True)
     # Foreign keys
     source_database_id = db.Column(db.Integer,
                                    db.ForeignKey('source_database.id', onupdate="CASCADE", ondelete="RESTRICT"))
