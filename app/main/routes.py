@@ -98,6 +98,15 @@ def upload():
                 abort(400)
             uploaded_file.save(os.path.join(current_app.config['UPLOAD_FOLDER'], filename))
     loader.upload_to_database()
+    errors_file = loader.get_upload_errors()
+    if errors_file is not None:
+        errors = []
+        with open(errors_file) as file:
+            for line in file:
+                errors.append(line)
+        return render_template('control.html',
+                               title='Панель управления',
+                               errors=errors)
     return redirect(url_for('main.control'))
 
 

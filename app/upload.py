@@ -3,6 +3,7 @@ import re
 
 from chardet.universaldetector import UniversalDetector
 from pymarc import MARCReader
+from pymarc import exceptions as exc
 from app.models import Record, Author, Keyword, \
     SourceDatabase, DocumentType, Publisher
 from app import db
@@ -22,12 +23,12 @@ HASH_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'hashe
 file = Path(HASH_FILE)
 file.touch(exist_ok=True)
 ENCODING_TYPES = ['cp1251', 'utf-8']
-
+UPLOAD_ERRORS_LOG = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'upload_errors.log'))
 
 
 # Get file encoding type
-def get_encoding_type(file):
-    data = open(file, 'rb')
+def get_encoding_type(input_data):
+    data = open(input_data, 'rb')
     detector = UniversalDetector()
     for line in data.readlines():
         res = detector.result['encoding']
@@ -59,10 +60,11 @@ class DBLoader:
     P1 = []
     P2 = []
 
+
     @classmethod
-    def _probe_encoding_types(cls, file):
+    def _probe_encoding_types(cls, input_data):
         for encoding in ENCODING_TYPES:
-            with open(file, 'rb') as fh:
+            with open(input_data, 'rb') as fh:
                 reader = MARCReader(fh, file_encoding=encoding)
                 for record in reader:
                     if record is None:
@@ -124,7 +126,7 @@ class DBLoader:
 
     @classmethod
     def _save_tree(cls, a_tree):
-        f = open(HASH_FILE, 'w+')
+        f = open(HASH_FILE, 'w')
         for node in a_tree:
             f.write(str(node[0]) + ' ' + str(node[1]) + '\n')
         f.close()
@@ -143,10 +145,13 @@ class DBLoader:
             source_database_entry = SourceDatabase(name=source_database_name)
 
         a_tree = cls._load_tree()
+
+        record_number = 0
         with open(marc_file, 'rb') as fh:
             reader = MARCReader(fh, file_encoding=file_encoding)
             for record in reader:
-                if record is not None:
+                record_number += 1
+                if record:
                     record_string = ''
                     record_string += source_database_entry.name
                     record_table = Record()
@@ -178,6 +183,7 @@ class DBLoader:
                             record_table.url = record['856']['u']
                             record_string += record['856']['u']
 
+                    # Hashing
                     _hash = cls._hash(record_string)
                     if _hash not in a_tree:
                         a_tree.add(_hash)
@@ -338,6 +344,7 @@ class DBLoader:
                                 publisher_entry = Publisher(name=record['210']['c'])
                                 record_table.publisher.append(publisher_entry)
                                 db.session.add(publisher_entry)
+
                     # Keywords
                     if record['610'] is not None:
                         if record['610']['a'] is not None:
@@ -370,6 +377,27 @@ class DBLoader:
                     # TODO: generate bibliographic description
                     record_table.bibliographic_description = None
                     db.session.add(record_table)
+
+                elif isinstance(reader.current_exception, exc.FatalReaderError):
+                    # data file format error
+                    # reader will raise StopIteration
+                    upload_errors_log = open(UPLOAD_ERRORS_LOG, 'a+')
+                    upload_errors_log.write(str(input_data) + '\n')
+                    upload_errors_log.write(str(record_number) + '\n')
+                    upload_errors_log.write(str(reader.current_exception) + '\n')
+                    # upload_errors_log.write(str(reader.current_chunk) + '\n')
+                    upload_errors_log.close()
+                    continue
+                else:
+                    # fix the record data, skip or stop reading:
+                    upload_errors_log = open(UPLOAD_ERRORS_LOG, 'a+')
+                    upload_errors_log.write(str(input_data) + '\n')
+                    upload_errors_log.write(str(record_number) + '\n')
+                    upload_errors_log.write(str(reader.current_exception) + '\n')
+                    upload_errors_log.write(str(reader.current_chunk) + '\n')
+                    upload_errors_log.close()
+                    # break/continue/raise
+                    continue
         cls._save_tree(a_tree)
 
     @classmethod
@@ -381,157 +409,182 @@ class DBLoader:
             source_database_entry = SourceDatabase(name=source_database_name)
 
         a_tree = cls._load_tree()
+
+        record_number = 0
         with open(marc_file, 'rb') as fh:
             reader = MARCReader(fh, file_encoding=file_encoding)
             for record in reader:
-                record_string = ''
-                record_string += source_database_entry.name
-                record_table = Record()
-                # Title
-                if record.title() is not None:
-                    record_table.title = record.title()
-                    record_string += record.title()
+                record_number += 1
+                if record:
+                    record_string = ''
+                    record_string += source_database_entry.name
+                    record_table = Record()
 
-                # Document type
-                document_type_entry = db.session.query(DocumentType).filter_by(
-                    name=DOCUMENT_TYPES.get(record.leader[7])).scalar()
-                if document_type_entry is not None:
-                    record_string += document_type_entry.name
-                else:
-                    document_type_entry = DocumentType(name=DOCUMENT_TYPES.get(record.leader[7]))
-                    record_string += document_type_entry.name
+                    # Title
+                    if record.title() is not None:
+                        record_table.title = record.title()
+                        record_string += record.title()
 
-                # Publishing year
-                if record['260'] is not None:
-                    if record['260']['c'] is not None:
-                        record_table.publishing_year = record['260']['c']
-                        record_string += str(record['260']['c'])
+                    # Document type
+                    document_type_entry = db.session.query(DocumentType).filter_by(
+                        name=DOCUMENT_TYPES.get(record.leader[7])).scalar()
+                    if document_type_entry is not None:
+                        record_string += document_type_entry.name
+                    else:
+                        document_type_entry = DocumentType(name=DOCUMENT_TYPES.get(record.leader[7]))
+                        record_string += document_type_entry.name
 
-                # URL
-                if record['856'] is not None:
-                    if record['856']['u'] is not None:
-                        record_table.url = record['856']['u']
-                        record_string += record['856']['u']
-                elif record['003'] is not None:
-                    record_table.url = record['003']
-                    record_string += record['003']
+                    # Publishing year
+                    if record['260'] is not None:
+                        if record['260']['c'] is not None:
+                            record_table.publishing_year = record['260']['c']
+                            record_string += str(record['260']['c'])
 
-                _hash = cls._hash(record_string)
-                if _hash not in a_tree:
-                    a_tree.add(_hash)
-                    db.session.add(document_type_entry)
-                    db.session.add(source_database_entry)
-                    record_table.hash_1 = _hash[0]
-                    record_table.hash_2 = _hash[1]
-                    record_table.document_type.append(document_type_entry)
-                    record_table.source_database.append(source_database_entry)
-                else:
-                    continue
+                    # URL
+                    if record['856'] is not None:
+                        if record['856']['u'] is not None:
+                            record_table.url = record['856']['u']
+                            record_string += record['856']['u']
+                    elif record['003'] is not None:
+                        record_table.url = record['003']
+                        record_string += record['003']
 
-                # Description
-                if record['520'] is not None:
-                    if record['520']['a'] is not None:
-                        record_table.description = str(record['520']['a'])
+                    # Hashing
+                    _hash = cls._hash(record_string)
+                    if _hash not in a_tree:
+                        a_tree.add(_hash)
+                        db.session.add(document_type_entry)
+                        db.session.add(source_database_entry)
+                        record_table.hash_1 = _hash[0]
+                        record_table.hash_2 = _hash[1]
+                        record_table.document_type.append(document_type_entry)
+                        record_table.source_database.append(source_database_entry)
+                    else:
+                        continue
 
-                # Cover
-                if record['856'] is not None:
-                    if record['856']['x'] is not None:
-                        record_table.cover = record['856']['x']
+                    # Description
+                    if record['520'] is not None:
+                        if record['520']['a'] is not None:
+                            record_table.description = str(record['520']['a'])
 
-                # ISBN
-                if record.isbn() is not None:
-                    record_table.isbn = record.isbn()
+                    # Cover
+                    if record['856'] is not None:
+                        if record['856']['x'] is not None:
+                            record_table.cover = record['856']['x']
 
-                # ISSN
-                if record.issn() is not None:
-                    record_table.issn = record.issn()
+                    # ISBN
+                    if record.isbn() is not None:
+                        record_table.isbn = record.isbn()
 
-                # Pages
-                if record['300'] is not None:
-                    if record['300']['a'] is not None:
-                        temp = re.findall(r'\d+', str(record['300']['a']))
-                        record_table.pages = int(temp[0])
+                    # ISSN
+                    if record.issn() is not None:
+                        record_table.issn = record.issn()
 
-                # UDC
-                if record['080'] is not None:
-                    if record['080']['a'] is not None:
-                        record_table.udc = str(record['080']['a'])
+                    # Pages
+                    if record['300'] is not None:
+                        if record['300']['a'] is not None:
+                            temp = re.findall(r'\d+', str(record['300']['a']))
+                            record_table.pages = int(temp[0])
 
-                # BBK
-                if record['084'] is not None:
-                    if record['084']['a'] is not None:
-                        record_table.bbk = record['084']['a']
+                    # UDC
+                    if record['080'] is not None:
+                        if record['080']['a'] is not None:
+                            record_table.udc = str(record['080']['a'])
 
-                # Authors
-                if record['100'] is not None:
-                    if record['100']['a'] is not None:
-                        author_entry = db.session.query(Author).filter_by(name=record['100']['a']).scalar()
-                        if author_entry is not None:
-                            record_table.authors.append(author_entry)
-                            db.session.add(author_entry)
-                        else:
-                            author_entry = Author(name=record['100']['a'])
-                            record_table.authors.append(author_entry)
-                            db.session.add(author_entry)
-                if record['700'] is not None:
-                    if record['700']['a'] is not None:
-                        authors_list = []
-                        for f in record.get_fields('700'):
-                            authors_list.append(f['a'])
-                        for val in authors_list:
-                            author_entry = db.session.query(Author).filter_by(name=val).scalar()
+                    # BBK
+                    if record['084'] is not None:
+                        if record['084']['a'] is not None:
+                            record_table.bbk = record['084']['a']
+
+                    # Authors
+                    if record['100'] is not None:
+                        if record['100']['a'] is not None:
+                            author_entry = db.session.query(Author).filter_by(name=record['100']['a']).scalar()
                             if author_entry is not None:
                                 record_table.authors.append(author_entry)
                                 db.session.add(author_entry)
                             else:
-                                author_entry = Author(name=val)
+                                author_entry = Author(name=record['100']['a'])
                                 record_table.authors.append(author_entry)
                                 db.session.add(author_entry)
+                    if record['700'] is not None:
+                        if record['700']['a'] is not None:
+                            authors_list = []
+                            for f in record.get_fields('700'):
+                                authors_list.append(f['a'])
+                            for val in authors_list:
+                                author_entry = db.session.query(Author).filter_by(name=val).scalar()
+                                if author_entry is not None:
+                                    record_table.authors.append(author_entry)
+                                    db.session.add(author_entry)
+                                else:
+                                    author_entry = Author(name=val)
+                                    record_table.authors.append(author_entry)
+                                    db.session.add(author_entry)
 
-                # Publisher
-                if record['260'] is not None:
-                    if record['260']['b'] is not None:
-                        publisher_entry = db.session.query(Publisher).filter_by(name=record.publisher()).scalar()
-                        if publisher_entry is not None:
-                            db.session.add(publisher_entry)
-                            record_table.publisher.append(publisher_entry)
-                        else:
-                            publisher_entry = Publisher(name=record.publisher())
-                            record_table.publisher.append(publisher_entry)
-                            db.session.add(publisher_entry)
-
-                # Keywords
-                if record['653'] is not None:
-                    if record['653']['a'] is not None:
-                        keywords_list = []
-                        for f in record.get_fields('653'):
-                            keywords_list.append(f['a'].lower())
-                        for val in keywords_list:
-                            temp = []
-                            if '--' in val:
-                                temp = val.split('--')
-                                keywords_list.remove(val)
-                            if ',' in val:
-                                temp = val.split(',')
-                                keywords_list.remove(val)
-                            for val1 in temp:
-                                if val1 != ' ' and val1 != '':
-                                    keywords_list.append(val1.strip())
-                        keywords_list = list(set(keywords_list))
-                        for val in keywords_list:
-                            val = val.replace('"', '')
-                            keyword_entry = db.session.query(Keyword).filter_by(name=val).scalar()
-                            if keyword_entry is not None:
-                                record_table.keywords.append(keyword_entry)
-                                db.session.add(keyword_entry)
+                    # Publisher
+                    if record['260'] is not None:
+                        if record['260']['b'] is not None:
+                            publisher_entry = db.session.query(Publisher).filter_by(name=record.publisher()).scalar()
+                            if publisher_entry is not None:
+                                db.session.add(publisher_entry)
+                                record_table.publisher.append(publisher_entry)
                             else:
-                                keyword_entry = Keyword(name=val)
-                                record_table.keywords.append(keyword_entry)
-                                db.session.add(keyword_entry)
+                                publisher_entry = Publisher(name=record.publisher())
+                                record_table.publisher.append(publisher_entry)
+                                db.session.add(publisher_entry)
 
-                # TODO: generate bibliographic description
-                record_table.bibliographic_description = None
-                db.session.add(record_table)
+                    # Keywords
+                    if record['653'] is not None:
+                        if record['653']['a'] is not None:
+                            keywords_list = []
+                            for f in record.get_fields('653'):
+                                keywords_list.append(f['a'].lower())
+                            for val in keywords_list:
+                                temp = []
+                                if '--' in val:
+                                    temp = val.split('--')
+                                    keywords_list.remove(val)
+                                if ',' in val:
+                                    temp = val.split(',')
+                                    keywords_list.remove(val)
+                                for val1 in temp:
+                                    if val1 != ' ' and val1 != '':
+                                        keywords_list.append(val1.strip())
+                            keywords_list = list(set(keywords_list))
+                            for val in keywords_list:
+                                val = val.replace('"', '')
+                                keyword_entry = db.session.query(Keyword).filter_by(name=val).scalar()
+                                if keyword_entry is not None:
+                                    record_table.keywords.append(keyword_entry)
+                                    db.session.add(keyword_entry)
+                                else:
+                                    keyword_entry = Keyword(name=val)
+                                    record_table.keywords.append(keyword_entry)
+                                    db.session.add(keyword_entry)
+
+                    # TODO: generate bibliographic description
+                    record_table.bibliographic_description = None
+                    db.session.add(record_table)
+
+                elif isinstance(reader.current_exception, exc.FatalReaderError):
+                    # data file format error
+                    # reader will raise StopIteration
+                    upload_errors_log = open(UPLOAD_ERRORS_LOG, 'a')
+                    upload_errors_log.write(str(input_data) + ' ')
+                    upload_errors_log.write(str(record_number) + ' ')
+                    upload_errors_log.write(reader.current_exception + ' ')
+                    upload_errors_log.write(reader.current_chunk + '\n')
+                    upload_errors_log.close()
+                else:
+                    # fix the record data, skip or stop reading:
+                    upload_errors_log = open(UPLOAD_ERRORS_LOG, 'a')
+                    upload_errors_log.write(str(input_data) + ' ')
+                    upload_errors_log.write(str(record_number) + ' ')
+                    upload_errors_log.write(reader.current_exception + ' ')
+                    upload_errors_log.write(reader.current_chunk + '\n')
+                    upload_errors_log.close()
+                    # break/continue/raise
         cls._save_tree(a_tree)
 
     @classmethod
@@ -547,4 +600,11 @@ class DBLoader:
         Record.reindex()
         db.session.commit()
         DBLoader._empty_directory(directory)
+
+    @classmethod
+    def get_upload_errors(cls):
+        if os.path.exists(UPLOAD_ERRORS_LOG):
+            return UPLOAD_ERRORS_LOG
+        else:
+            return None
 
