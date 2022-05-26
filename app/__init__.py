@@ -22,7 +22,8 @@ def create_app(config_class=Config):
     migrate.init_app(app, db)
     login.init_app(app)
     bootstrap.init_app(app)
-    app.elasticsearch = Elasticsearch([app.config['ELASTICSEARCH_URL']]) \
+    app.elasticsearch = Elasticsearch([app.config['ELASTICSEARCH_URL']],
+                                      timeout=30, max_retries=10, retry_on_timeout=True) \
         if app.config['ELASTICSEARCH_URL'] else None
 
     from app.errors import bp as errors_bp

@@ -3,37 +3,39 @@
         <div class="well">
             <div class="row">
                 <div class="col-xs-10 col-sm-10 col-md-10 col-lg-10">
-                    <p class="text-muted">{{ record.source_database }} {{ record.document_type}}</p>
+                    <p class="text-muted">
+                        <span class="glyphicon glyphicon-save-file"></span> {{ record.source_database[0] }}
+                        <span class="glyphicon glyphicon-file"></span> {{ record.document_type[0] }}</p>
                     <p><b><a href="{{ record.url }}">{{ record.title }}</a></b></p>
                     <div class="myParagraph" style="display: none;">
                         {% if record.description %}
                         <p>{{ record.description }}</p>
                         {% endif %}
                         {% if record.isbn %}
-                        <p><b>ISBN: {{ record.isbn }}</b></p>
+                        <p><b>ISBN:</b> {{ record.isbn }}</p>
                         {% endif %}
                         {% if record.issn %}
-                        <p><b>ISSN: {{ record.issn }}</b></p>
+                        <p><b>ISSN:</b> {{ record.issn }}</p>
                         {% endif %}
                         {% if record.bbk %}
-                        <p><b>ББК: {{ record.bbk }}</b></p>
+                        <p><b>ББК:</b> {{ record.bbk }}</p>
                         {% endif %}
                         {% if record.udc %}
-                        <p><b>УДК: {{ record.udc }}</b></p>
-                        {% endif %}
-                        {% if record.keywords %}
-                        <p><b>Ключевые слова:</b> {{ record.keywords }}</p>
+                        <p><b>УДК:</b> {{ record.udc }}</p>
                         {% endif %}
                     </div>
                     {% if record.publishing_year %}
-                    <p><b>{{ record.publishing_year }}</b></p>
+                        <p></p><a href="/search/year={{ record.publishing_year }}"><b>{{ record.publishing_year }}</b></a></p>
                     {% endif %}
                     {% if record.authors %}
-                    <p><b>{{ record.authors }}</b></p>
+                    {% for author in record.authors %}
+                    <a href="/search/author={{ author }}">{{ author }}</a>
+                    {% endfor %}
                     {% endif %}
+                    <br>
                     {% if record.publisher %}
                     <span class="text-muted">
-                        Издательство:</span> <b>{{ record.publisher }}</b>
+                        Издательство:</span> <a href="/search/publisher={{ record.publisher[0] }}">{{ record.publisher[0] }}</a>
                         {% endif %}
                         {% if record.pages %}
                         <p>{{ record.pages }} стр.</p>

@@ -13,7 +13,7 @@ class RegistrationForm(FlaskForm):
         validators=[DataRequired(), EqualTo('password')],
         render_kw={'placeholder': 'Повторите пароль'}
     )
-    user_role = SelectField(u'', choices=[('administrator', 'Администратор'), ('moderator', 'Модератор')],
+    user_role = SelectField(u'', choices=[('administrator', 'Администратор'), ('selector', 'Комплектатор')],
                             validators=[DataRequired()])
     submit = SubmitField('Зарегистрироваться')
 

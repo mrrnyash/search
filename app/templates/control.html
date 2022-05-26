@@ -15,7 +15,7 @@
             {% if errors %}
             <div class="col-xs-12 col-sm-12 col-md-6 col-lg-6">
                         <div class="alert alert-warning" role="alert">
-                            Ошибки загрузки:
+                            <span class="glyphicon glyphicon-remove-sign"> <b>Ошибки загрузки</b></span><br>
                             {% for error in errors %}
                             <p>{{ error }}</p>
                             {%  endfor %}

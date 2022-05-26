@@ -5,7 +5,7 @@ from chardet.universaldetector import UniversalDetector
 from pymarc import MARCReader
 from pymarc import exceptions as exc
 from app.models import Record, Author, Keyword, \
-    SourceDatabase, DocumentType, Publisher
+    SourceDatabase, DocumentType, Publisher, SearchableMixin
 from app import db
 from flask import current_app
 from pathlib import Path
@@ -19,11 +19,20 @@ DOCUMENT_TYPES = {
     'm': 'Монографический ресурс',
     's': 'Сериальный ресурс'
 }
+
+ENCODING_TYPES = ['cp1251', 'utf-8']
+
 HASH_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'hashes.txt'))
 file = Path(HASH_FILE)
 file.touch(exist_ok=True)
-ENCODING_TYPES = ['cp1251', 'utf-8']
+
 UPLOAD_ERRORS_LOG = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'upload_errors.log'))
+file = Path(UPLOAD_ERRORS_LOG)
+file.touch(exist_ok=True)
+
+TEMP_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'temp.iso'))
+# file = Path(TEMP_FILE)
+# file.touch(exist_ok=True)
 
 
 # Get file encoding type
@@ -38,7 +47,6 @@ def get_encoding_type(input_data):
     detector.close()
     data.close()
     return detector.result['encoding']
-
 
 
 def bpow(a, n, mod):
@@ -60,9 +68,9 @@ class DBLoader:
     P1 = []
     P2 = []
 
-
     @classmethod
     def _probe_encoding_types(cls, input_data):
+        file_encoding = None
         for encoding in ENCODING_TYPES:
             with open(input_data, 'rb') as fh:
                 reader = MARCReader(fh, file_encoding=encoding)
@@ -72,6 +80,8 @@ class DBLoader:
                     else:
                         file_encoding = encoding
                         break
+        if file_encoding is None:
+            return None
         return file_encoding
 
     @classmethod
@@ -79,6 +89,10 @@ class DBLoader:
         marc_file = os.path.join(current_app.config['UPLOAD_FOLDER'], input_data)
         # Get file encoding
         file_encoding = cls._probe_encoding_types(marc_file)
+
+        if file_encoding is None:
+            return None
+
         # Get source database once
         with open(marc_file, 'rb') as fh:
             reader = MARCReader(fh, file_encoding=file_encoding)
@@ -131,15 +145,17 @@ class DBLoader:
             f.write(str(node[0]) + ' ' + str(node[1]) + '\n')
         f.close()
 
-    @staticmethod
-    def _empty_directory(directory):
-        for f in os.listdir(directory):
-            os.remove(os.path.join(directory, f))
-
     @classmethod
-    def _process_rusmarc(cls, input_data):
+    def _process_rusmarc(cls, original_file_name, input_data, id, metadata):
         marc_file = os.path.join(current_app.config['UPLOAD_FOLDER'], input_data)
-        source_database_name, file_encoding = cls._get_metadata(marc_file)
+        cur_metadata = cls._get_metadata(marc_file)
+        if cur_metadata is None:
+            # Write to UPLOAD_ERRORS_LOG: error in record with id
+            upload_errors_log = open(UPLOAD_ERRORS_LOG, 'a')
+            upload_errors_log.write(original_file_name + ' ' + str(id) + '\n')
+            upload_errors_log.close()
+            return
+        source_database_name, file_encoding = metadata
         source_database_entry = db.session.query(SourceDatabase).filter_by(name=source_database_name).scalar()
         if source_database_entry is None:
             source_database_entry = SourceDatabase(name=source_database_name)
@@ -378,21 +394,19 @@ class DBLoader:
                     record_table.bibliographic_description = None
                     db.session.add(record_table)
 
+
                 elif isinstance(reader.current_exception, exc.FatalReaderError):
                     # data file format error
                     # reader will raise StopIteration
-                    upload_errors_log = open(UPLOAD_ERRORS_LOG, 'a+')
-                    upload_errors_log.write(str(input_data) + '\n')
-                    upload_errors_log.write(str(record_number) + '\n')
+                    upload_errors_log = open(UPLOAD_ERRORS_LOG, 'a')
+                    upload_errors_log.write(str(original_file_name) + ' ' + str(id) + '\n')
                     upload_errors_log.write(str(reader.current_exception) + '\n')
-                    # upload_errors_log.write(str(reader.current_chunk) + '\n')
+                    upload_errors_log.write(str(reader.current_chunk) + '\n')
                     upload_errors_log.close()
-                    continue
                 else:
                     # fix the record data, skip or stop reading:
-                    upload_errors_log = open(UPLOAD_ERRORS_LOG, 'a+')
-                    upload_errors_log.write(str(input_data) + '\n')
-                    upload_errors_log.write(str(record_number) + '\n')
+                    upload_errors_log = open(UPLOAD_ERRORS_LOG, 'a')
+                    upload_errors_log.write(str(original_file_name) + ' ' + str(id) + '\n')
                     upload_errors_log.write(str(reader.current_exception) + '\n')
                     upload_errors_log.write(str(reader.current_chunk) + '\n')
                     upload_errors_log.close()
@@ -400,10 +414,18 @@ class DBLoader:
                     continue
         cls._save_tree(a_tree)
 
+
     @classmethod
-    def _process_marc21(cls, input_data):
+    def _process_marc21(cls, original_file_name, input_data, id, metadata):
         marc_file = os.path.join(current_app.config['UPLOAD_FOLDER'], input_data)
-        source_database_name, file_encoding = cls._get_metadata(marc_file)
+        cur_metadata = cls._get_metadata(marc_file)
+        if cur_metadata is None:
+            # Write to UPLOAD_ERRORS_LOG: error in record with id
+            upload_errors_log = open(UPLOAD_ERRORS_LOG, 'a')
+            upload_errors_log.write(original_file_name + ' ' + str(id) + '\n')
+            upload_errors_log.close()
+            return
+        source_database_name, file_encoding = metadata
         source_database_entry = db.session.query(SourceDatabase).filter_by(name=source_database_name).scalar()
         if source_database_entry is None:
             source_database_entry = SourceDatabase(name=source_database_name)
@@ -571,40 +593,73 @@ class DBLoader:
                     # data file format error
                     # reader will raise StopIteration
                     upload_errors_log = open(UPLOAD_ERRORS_LOG, 'a')
-                    upload_errors_log.write(str(input_data) + ' ')
-                    upload_errors_log.write(str(record_number) + ' ')
-                    upload_errors_log.write(reader.current_exception + ' ')
-                    upload_errors_log.write(reader.current_chunk + '\n')
+                    upload_errors_log.write(str(original_file_name) + ' ' + str(id) + '\n')
+                    upload_errors_log.write(str(reader.current_exception) + '\n')
+                    upload_errors_log.write(str(reader.current_chunk) + '\n')
                     upload_errors_log.close()
                 else:
                     # fix the record data, skip or stop reading:
                     upload_errors_log = open(UPLOAD_ERRORS_LOG, 'a')
-                    upload_errors_log.write(str(input_data) + ' ')
-                    upload_errors_log.write(str(record_number) + ' ')
-                    upload_errors_log.write(reader.current_exception + ' ')
-                    upload_errors_log.write(reader.current_chunk + '\n')
+                    upload_errors_log.write(str(original_file_name) + ' ' + str(id) + '\n')
+                    upload_errors_log.write(str(reader.current_exception) + '\n')
+                    upload_errors_log.write(str(reader.current_chunk) + '\n')
                     upload_errors_log.close()
                     # break/continue/raise
+                    continue
         cls._save_tree(a_tree)
+
 
     @classmethod
     def upload_to_database(cls):
         directory = str(current_app.config['UPLOAD_FOLDER'])
         for filename in os.listdir(directory):
-            f = os.path.join(directory, filename)
-            source_db_name = cls._get_metadata(filename)[0]
-            if source_db_name == 'Издательство Лань' or source_db_name == 'RUCONT':
-                cls._process_rusmarc(filename)
-            elif source_db_name == 'ИКО Юрайт':
-                cls._process_marc21(filename)
-        Record.reindex()
-        db.session.commit()
-        DBLoader._empty_directory(directory)
+            cur_file_path = os.path.join(directory, filename)
+            metadata = cls._get_metadata(filename)
+            source_db_name = metadata[0]
+
+            file = open(cur_file_path, 'r', encoding=metadata[1])
+            id = 1
+            for line in file:
+                cur_record = ''
+                for c in line:
+                    cur_record += c
+                    if ord(c) == 29:
+                        with open(TEMP_FILE, 'w+', encoding=metadata[1]) as output:
+                            output.write(cur_record)
+                        output.close()
+
+                        if source_db_name == 'Издательство Лань' or source_db_name == 'RUCONT':
+                            cls._process_rusmarc(filename, TEMP_FILE, id, metadata)
+                        elif source_db_name == 'ИКО Юрайт':
+                            cls._process_marc21(filename, TEMP_FILE, id, metadata)
+
+                        cur_record = ''
+                        id += 1
+
+                if len(cur_record) > 0:
+                    with open(TEMP_FILE, 'w', encoding=metadata[1]) as output:
+                        output.write(cur_record)
+                    output.close()
+
+                if source_db_name == 'Издательство Лань' or source_db_name == 'RUCONT':
+                    cls._process_rusmarc(filename, TEMP_FILE, id, metadata)
+                elif source_db_name == 'ИКО Юрайт':
+                    cls._process_marc21(filename, TEMP_FILE, id, metadata)
+            db.session.commit()
+            Record.reindex()
+
+            os.remove(cur_file_path)
+        if os.path.exists(TEMP_FILE):
+            os.remove(TEMP_FILE)
 
     @classmethod
     def get_upload_errors(cls):
-        if os.path.exists(UPLOAD_ERRORS_LOG):
-            return UPLOAD_ERRORS_LOG
+        if os.path.getsize(UPLOAD_ERRORS_LOG) > 0:
+            errors_list = []
+            with open(UPLOAD_ERRORS_LOG) as log:
+                for line in log:
+                    errors_list.append(line)
+            open(UPLOAD_ERRORS_LOG, 'w').close()
+            return errors_list
         else:
             return None
-
