@@ -9,6 +9,7 @@ from app.models import Record, Author, Keyword, \
 from app import db
 from flask import current_app
 from pathlib import Path
+from multiprocessing import Process, cpu_count
 
 DOCUMENT_TYPES = {
     'a': 'Статьи, периодика',
@@ -31,6 +32,8 @@ file = Path(UPLOAD_ERRORS_LOG)
 file.touch(exist_ok=True)
 
 TEMP_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'temp.iso'))
+
+
 # file = Path(TEMP_FILE)
 # file.touch(exist_ok=True)
 
@@ -163,6 +166,7 @@ class DBLoader:
         a_tree = cls._load_tree()
 
         record_number = 0
+        objects_list = []
         with open(marc_file, 'rb') as fh:
             reader = MARCReader(fh, file_encoding=file_encoding)
             for record in reader:
@@ -205,8 +209,10 @@ class DBLoader:
                         a_tree.add(_hash)
                         record_table.hash_1 = str(_hash[0])
                         record_table.hash_2 = str(_hash[1])
-                        db.session.add(document_type_entry)
-                        db.session.add(source_database_entry)
+                        # db.session.add(document_type_entry)
+                        # db.session.add(source_database_entry)
+                        objects_list.append(document_type_entry)
+                        objects_list.append(source_database_entry)
                         record_table.document_type.append(document_type_entry)
                         record_table.source_database.append(source_database_entry)
                     else:
@@ -260,11 +266,13 @@ class DBLoader:
                                     name=record['700']['a'] + ' ' + record['700']['b']).scalar()
                                 if author_entry is not None:
                                     record_table.authors.append(author_entry)
-                                    db.session.add(author_entry)
+                                    # db.session.add(author_entry)
+                                    objects_list.append(author_entry)
                                 else:
                                     author_entry = Author(name=record['700']['a'] + ' ' + record['700']['b'])
                                     record_table.authors.append(author_entry)
-                                    db.session.add(author_entry)
+                                    # db.session.add(author_entry)
+                                    objects_list.append(author_entry)
                             elif record['700']['g'] is not None:
                                 initials = record['700']['g'].split()
                                 for i in range(len(initials)):
@@ -274,11 +282,13 @@ class DBLoader:
                                     name=record['700']['a'] + ' ' + initials).scalar()
                                 if author_entry is not None:
                                     record_table.authors.append(author_entry)
-                                    db.session.add(author_entry)
+                                    # db.session.add(author_entry)
+                                    objects_list.append(author_entry)
                                 else:
                                     author_entry = Author(name=record['700']['a'] + ' ' + initials)
                                     record_table.authors.append(author_entry)
-                                    db.session.add(author_entry)
+                                    # db.session.add(author_entry)
+                                    objects_list.append(author_entry)
                     if record['701'] is not None:
                         if record['701']['a'] is not None:
                             if record['701']['b'] is not None:
@@ -290,11 +300,13 @@ class DBLoader:
                                     author_entry = db.session.query(Author).filter_by(name=val).scalar()
                                     if author_entry is not None:
                                         record_table.authors.append(author_entry)
-                                        db.session.add(author_entry)
+                                        # db.session.add(author_entry)
+                                        objects_list.append(author_entry)
                                     else:
                                         author_entry = Author(name=val)
                                         record_table.authors.append(author_entry)
-                                        db.session.add(author_entry)
+                                        # db.session.add(author_entry)
+                                        objects_list.append(author_entry)
                             elif record['701']['a'] is not None:
                                 if record['701']['g'] is not None:
                                     authors_list = []
@@ -309,11 +321,13 @@ class DBLoader:
                                         author_entry = db.session.query(Author).filter_by(name=val).scalar()
                                         if author_entry is not None:
                                             record_table.authors.append(author_entry)
-                                            db.session.add(author_entry)
+                                            # db.session.add(author_entry)
+                                            objects_list.append(author_entry)
                                         else:
                                             author_entry = Author(name=val)
                                             record_table.authors.append(author_entry)
-                                            db.session.add(author_entry)
+                                            # db.session.add(author_entry)
+                                            objects_list.append(author_entry)
                     if record['702'] is not None:
                         if record['702']['a'] is not None and record['702']['b'] is not None:
                             authors_list = []
@@ -324,11 +338,13 @@ class DBLoader:
                                 author_entry = db.session.query(Author).filter_by(name=val).scalar()
                                 if author_entry is not None:
                                     record_table.authors.append(author_entry)
-                                    db.session.add(author_entry)
+                                    # db.session.add(author_entry)
+                                    objects_list.append(author_entry)
                                 else:
                                     author_entry = Author(name=val)
                                     record_table.authors.append(author_entry)
-                                    db.session.add(author_entry)
+                                    # db.session.add(author_entry)
+                                    objects_list.append(author_entry)
                         elif record['702']['a'] is not None:
                             if record['702']['g'] is not None:
                                 authors_list = []
@@ -343,23 +359,27 @@ class DBLoader:
                                     author_entry = db.session.query(Author).filter_by(name=val).scalar()
                                     if author_entry is not None:
                                         record_table.authors.append(author_entry)
-                                        db.session.add(author_entry)
+                                        # db.session.add(author_entry)
+                                        objects_list.append(author_entry)
                                     else:
                                         author_entry = Author(name=val)
                                         record_table.authors.append(author_entry)
-                                        db.session.add(author_entry)
+                                        # db.session.add(author_entry)
+                                        objects_list.append(author_entry)
 
                     # Publisher
                     if record['210'] is not None:
                         if record['210']['c'] is not None:
                             publisher_entry = db.session.query(Publisher).filter_by(name=record['210']['c']).scalar()
                             if publisher_entry is not None:
-                                db.session.add(publisher_entry)
+                                # db.session.add(publisher_entry)
+                                objects_list.append(publisher_entry)
                                 record_table.publisher.append(publisher_entry)
                             else:
                                 publisher_entry = Publisher(name=record['210']['c'])
                                 record_table.publisher.append(publisher_entry)
-                                db.session.add(publisher_entry)
+                                # db.session.add(publisher_entry)
+                                objects_list.append(publisher_entry)
 
                     # Keywords
                     if record['610'] is not None:
@@ -384,36 +404,40 @@ class DBLoader:
                                 keyword_entry = db.session.query(Keyword).filter_by(name=val).scalar()
                                 if keyword_entry is not None:
                                     record_table.keywords.append(keyword_entry)
-                                    db.session.add(keyword_entry)
+                                    # db.session.add(keyword_entry)
+                                    objects_list.append(keyword_entry)
                                 else:
                                     keyword_entry = Keyword(name=val)
                                     record_table.keywords.append(keyword_entry)
-                                    db.session.add(keyword_entry)
+                                    # db.session.add(keyword_entry)
+                                    objects_list.append(keyword_entry)
 
                     # TODO: generate bibliographic description
                     record_table.bibliographic_description = None
-                    db.session.add(record_table)
+                    # db.session.add(record_table)
+                    objects_list.append(record_table)
+                    db.session.add_all(objects_list)
+
 
 
                 elif isinstance(reader.current_exception, exc.FatalReaderError):
                     # data file format error
                     # reader will raise StopIteration
                     upload_errors_log = open(UPLOAD_ERRORS_LOG, 'a')
-                    upload_errors_log.write(str(original_file_name) + ' ' + str(id) + '\n')
+                    # upload_errors_log.write(str(original_file_name) + ' ' + str(id) + '\n')
                     upload_errors_log.write(str(reader.current_exception) + '\n')
-                    upload_errors_log.write(str(reader.current_chunk) + '\n')
+                    # upload_errors_log.write(str(reader.current_chunk) + '\n')
                     upload_errors_log.close()
                 else:
                     # fix the record data, skip or stop reading:
                     upload_errors_log = open(UPLOAD_ERRORS_LOG, 'a')
-                    upload_errors_log.write(str(original_file_name) + ' ' + str(id) + '\n')
+                    # upload_errors_log.write(str(original_file_name) + ' ' + str(id) + '\n')
                     upload_errors_log.write(str(reader.current_exception) + '\n')
-                    upload_errors_log.write(str(reader.current_chunk) + '\n')
+                    # upload_errors_log.write(str(reader.current_chunk) + '\n')
                     upload_errors_log.close()
                     # break/continue/raise
                     continue
         cls._save_tree(a_tree)
-
 
     @classmethod
     def _process_marc21(cls, original_file_name, input_data, id, metadata):
@@ -433,6 +457,7 @@ class DBLoader:
         a_tree = cls._load_tree()
 
         record_number = 0
+        objects_list = []
         with open(marc_file, 'rb') as fh:
             reader = MARCReader(fh, file_encoding=file_encoding)
             for record in reader:
@@ -475,8 +500,11 @@ class DBLoader:
                     _hash = cls._hash(record_string)
                     if _hash not in a_tree:
                         a_tree.add(_hash)
-                        db.session.add(document_type_entry)
-                        db.session.add(source_database_entry)
+                        # db.session.add(document_type_entry)
+                        # db.session.add(source_database_entry)
+                        objects_list.append(document_type_entry)
+                        objects_list.append(source_database_entry)
+
                         record_table.hash_1 = _hash[0]
                         record_table.hash_2 = _hash[1]
                         record_table.document_type.append(document_type_entry)
@@ -524,11 +552,13 @@ class DBLoader:
                             author_entry = db.session.query(Author).filter_by(name=record['100']['a']).scalar()
                             if author_entry is not None:
                                 record_table.authors.append(author_entry)
-                                db.session.add(author_entry)
+                                # db.session.add(author_entry)
+                                objects_list.append(author_entry)
                             else:
                                 author_entry = Author(name=record['100']['a'])
                                 record_table.authors.append(author_entry)
-                                db.session.add(author_entry)
+                                # db.session.add(author_entry)
+                                objects_list.append(author_entry)
                     if record['700'] is not None:
                         if record['700']['a'] is not None:
                             authors_list = []
@@ -538,23 +568,27 @@ class DBLoader:
                                 author_entry = db.session.query(Author).filter_by(name=val).scalar()
                                 if author_entry is not None:
                                     record_table.authors.append(author_entry)
-                                    db.session.add(author_entry)
+                                    # db.session.add(author_entry)
+                                    objects_list.append(author_entry)
                                 else:
                                     author_entry = Author(name=val)
                                     record_table.authors.append(author_entry)
-                                    db.session.add(author_entry)
+                                    # db.session.add(author_entry)
+                                    objects_list.append(author_entry)
 
                     # Publisher
                     if record['260'] is not None:
                         if record['260']['b'] is not None:
                             publisher_entry = db.session.query(Publisher).filter_by(name=record.publisher()).scalar()
                             if publisher_entry is not None:
-                                db.session.add(publisher_entry)
+                                # db.session.add(publisher_entry)
+                                objects_list.append(publisher_entry)
                                 record_table.publisher.append(publisher_entry)
                             else:
                                 publisher_entry = Publisher(name=record.publisher())
                                 record_table.publisher.append(publisher_entry)
-                                db.session.add(publisher_entry)
+                                # db.session.add(publisher_entry)
+                                objects_list.append(publisher_entry)
 
                     # Keywords
                     if record['653'] is not None:
@@ -579,76 +613,145 @@ class DBLoader:
                                 keyword_entry = db.session.query(Keyword).filter_by(name=val).scalar()
                                 if keyword_entry is not None:
                                     record_table.keywords.append(keyword_entry)
-                                    db.session.add(keyword_entry)
+                                    # db.session.add(keyword_entry)
+                                    objects_list.append(keyword_entry)
                                 else:
                                     keyword_entry = Keyword(name=val)
                                     record_table.keywords.append(keyword_entry)
-                                    db.session.add(keyword_entry)
+                                    # db.session.add(keyword_entry)
+                                    objects_list.append(keyword_entry)
 
                     # TODO: generate bibliographic description
                     record_table.bibliographic_description = None
-                    db.session.add(record_table)
-
+                    # db.session.add(record_table)
+                    objects_list.append(record_table)
+                    db.session.add_all(objects_list)
                 elif isinstance(reader.current_exception, exc.FatalReaderError):
                     # data file format error
                     # reader will raise StopIteration
                     upload_errors_log = open(UPLOAD_ERRORS_LOG, 'a')
-                    upload_errors_log.write(str(original_file_name) + ' ' + str(id) + '\n')
+                    # upload_errors_log.write(str(original_file_name) + ' ' + str(id) + '\n')
                     upload_errors_log.write(str(reader.current_exception) + '\n')
-                    upload_errors_log.write(str(reader.current_chunk) + '\n')
+                    # upload_errors_log.write(str(reader.current_chunk) + '\n')
                     upload_errors_log.close()
                 else:
                     # fix the record data, skip or stop reading:
                     upload_errors_log = open(UPLOAD_ERRORS_LOG, 'a')
-                    upload_errors_log.write(str(original_file_name) + ' ' + str(id) + '\n')
+                    # upload_errors_log.write(str(original_file_name) + ' ' + str(id) + '\n')
                     upload_errors_log.write(str(reader.current_exception) + '\n')
-                    upload_errors_log.write(str(reader.current_chunk) + '\n')
+                    # upload_errors_log.write(str(reader.current_chunk) + '\n')
                     upload_errors_log.close()
                     # break/continue/raise
                     continue
         cls._save_tree(a_tree)
 
-
     @classmethod
     def upload_to_database(cls):
         directory = str(current_app.config['UPLOAD_FOLDER'])
+        # num_workers = cpu_count()
+
+        file_to_encoding = {}
+        max_part_size = 1000
         for filename in os.listdir(directory):
+            if os.stat(os.path.join(directory, filename)).st_size > 5000000:
+                cur_file_path = os.path.join(directory, filename)
+                metadata = cls._get_metadata(cur_file_path)
+
+                file = open(cur_file_path, 'r', encoding=metadata[1])
+
+                cur_part_size = 0
+                part_id = 0
+
+                cur_part = ''
+                for c in file.read():
+                    cur_part += c
+                    if ord(c) == 29:
+                        cur_part_size += 1
+                    if cur_part_size == max_part_size:
+                        new_file_name = filename + '_PART_' + str(part_id) + '.iso'
+                        new_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..',
+                                                                'uploads/', new_file_name))
+                        file_to_encoding[new_file_name] = metadata
+                        with open(new_file, 'w+', encoding=metadata[1]) as output:
+                            output.write(cur_part)
+                        output.close()
+                        cur_part = ''
+                        cur_part_size = 0
+                        part_id += 1
+                if len(cur_part) > 0:
+                    new_file_name = filename + '_PART_' + str(part_id) + '.iso'
+                    new_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..',
+                                                            'uploads/', new_file_name))
+                    file_to_encoding[new_file_name] = metadata
+                    with open(new_file, 'w+', encoding=metadata[1]) as output:
+                        output.write(cur_part)
+                    output.close()
+                    part_id += 1
+                os.remove(cur_file_path)
+
+        for filename in os.listdir(directory):
+
             cur_file_path = os.path.join(directory, filename)
-            metadata = cls._get_metadata(filename)
+
+            metadata = None
+            if filename in file_to_encoding:
+                metadata = file_to_encoding[filename]
+            else:
+                metadata = cls._get_metadata(cur_file_path)
             source_db_name = metadata[0]
 
-            file = open(cur_file_path, 'r', encoding=metadata[1])
+            original_file_name = filename
             id = 1
-            for line in file:
-                cur_record = ''
-                for c in line:
-                    cur_record += c
-                    if ord(c) == 29:
-                        with open(TEMP_FILE, 'w+', encoding=metadata[1]) as output:
-                            output.write(cur_record)
-                        output.close()
 
-                        if source_db_name == 'Издательство Лань' or source_db_name == 'RUCONT':
-                            cls._process_rusmarc(filename, TEMP_FILE, id, metadata)
-                        elif source_db_name == 'ИКО Юрайт':
-                            cls._process_marc21(filename, TEMP_FILE, id, metadata)
+            num = ''
+            pos = len(filename) - 5
+            while pos >= 0:
+                if '0' <= filename[pos] <= '9':
+                    num = filename[pos] + num
+                    pos -= 1
+                else:
+                    break
 
-                        cur_record = ''
-                        id += 1
+            if pos - 5 >= 0 and filename[pos - 5:pos + 1] == '_PART_':
+                id = int(num) * max_part_size + 1
+                original_file_name = filename[:pos - 5]
 
-                if len(cur_record) > 0:
-                    with open(TEMP_FILE, 'w', encoding=metadata[1]) as output:
+            file = open(cur_file_path, 'r', encoding=metadata[1])
+            cur_record = ''
+            for c in file.read():
+                cur_record += c
+                if ord(c) == 29:
+                    with open(TEMP_FILE, 'w+', encoding=metadata[1]) as output:
                         output.write(cur_record)
                     output.close()
 
-                if source_db_name == 'Издательство Лань' or source_db_name == 'RUCONT':
-                    cls._process_rusmarc(filename, TEMP_FILE, id, metadata)
-                elif source_db_name == 'ИКО Юрайт':
-                    cls._process_marc21(filename, TEMP_FILE, id, metadata)
-            db.session.commit()
+                    if source_db_name == 'Издательство Лань' or source_db_name == 'RUCONT':
+                        # procs = [
+                        #     Process(target= cls._process_rusmarc, args=(original_file_name, TEMP_FILE, id, metadata)) for i in range(num_workers)]
+                        # for p in procs:
+                        #     p.start()
+                        #
+                        # for p in procs:
+                        #     p.join()
+                        cls._process_rusmarc(original_file_name, TEMP_FILE, id, metadata)
+
+                    elif source_db_name == 'ИКО Юрайт':
+                        # procs = [
+                        #     Process(target=cls._process_marc21, args=(original_file_name, TEMP_FILE, id, metadata)) for i in range(num_workers)]
+                        # for p in procs:
+                        #     p.start()
+                        #
+                        # for p in procs:
+                        #     p.join()
+                        cls._process_marc21(original_file_name, TEMP_FILE, id, metadata)
+
+                    cur_record = ''
+                    id += 1
             Record.reindex()
+            db.session.commit()
 
             os.remove(cur_file_path)
+
         if os.path.exists(TEMP_FILE):
             os.remove(TEMP_FILE)
 

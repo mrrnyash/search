@@ -12,12 +12,14 @@ from app.upload import DBLoader
 import time
 
 
+# from multiprocessing import Pool, cpu_count
+
+
 @bp.before_app_request
 def before_request():
     g.search_form = SearchForm()
     db.session.commit()
     g.sum_records = Record.query.count()
-
 
 
 @bp.route('/', methods=['GET', 'POST'])
@@ -158,7 +160,8 @@ def search_by_publisher(publisher, page=1):
 @bp.route('/search/year=<year>')
 @bp.route('/search/year=<year>&page=<int:page>')
 def search_by_year(year, page=1):
-    record_query = Record.query.filter_by(publishing_year=year).paginate(page, current_app.config['RECORDS_PER_PAGE'], False)
+    record_query = Record.query.filter_by(publishing_year=year).paginate(page, current_app.config['RECORDS_PER_PAGE'],
+                                                                         False)
     total = record_query.total
     records = record_query.items
     next_url = url_for('main.search_by_year',
@@ -202,8 +205,8 @@ def search_by_year(year, page=1):
 @login_required
 def admin():
     return render_template(
-        'administration.html',
-        title='Администрирование',
+        'admin.html',
+        title='Консоль администратора',
     )
 
 
@@ -227,9 +230,12 @@ def upload():
             if file_ext not in current_app.config['ALLOWED_EXTENSIONS']:
                 abort(400)
             uploaded_file.save(os.path.join(current_app.config['UPLOAD_FOLDER'], filename))
-
+    f = open("elapsed_time.txt", "w+")
+    start = time.time()
     loader.upload_to_database()
-    db.session.commit()
+    elapsed_time = time.time() - start
+    f.write(time.strftime("%H:%M:%S", time.gmtime(elapsed_time)))
+    f.close()
     errors = loader.get_upload_errors()
     if errors is not None:
         return render_template('control.html',

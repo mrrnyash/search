@@ -10,7 +10,7 @@ class Config(object):
     SECRET_KEY = os.environ.get('SECRET KEY') or 'you-will-never-guess'
 
     # MySQL
-    SQLALCHEMY_DATABASE_URI = 'mysql://root:@localhost/searchlib'
+    SQLALCHEMY_DATABASE_URI = 'mysql://root:@localhost/search'
 
     # disable the feature of signaling the application every time 
     # a change is about to be made in the database

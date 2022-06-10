@@ -26,7 +26,7 @@
                 <span class="icon-bar"></span>
                 <span class="icon-bar"></span>
             </button>
-            <a class="navbar-brand" href="/">Searchlib</a>
+            <a class="navbar-brand" href="/"> Поиск</a>
         </div>
         <!-- Collect the nav links, forms, and other content for toggling -->
         <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
@@ -46,7 +46,7 @@
                 <a href="#" class="dropdown-toggle myDropdown" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
                     Управление <span class="caret"></span></a>
                 <ul class="dropdown-menu myList">
-                <li><a href="/admin">Администрирование</a></li>
+                <li><a href="/admin">Консоль администратора</a></li>
                 <li><a href="/control">Панель управления</a></li>
                 {% endif %}
                 {% if current_user.is_authenticated and current_user.role_id != 1 %}
