@@ -1,1 +1,1 @@
-FLASK_APP=searchlib.py
+FLASK_APP=search.py
