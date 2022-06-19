@@ -5,7 +5,7 @@ from chardet.universaldetector import UniversalDetector
 from pymarc import MARCReader
 from pymarc import exceptions as exc
 from app.models import Record, Author, Keyword, \
-    SourceDatabase, DocumentType, Publisher, SearchableMixin
+    SourceDatabase, DocumentType, Publisher
 from app import db
 from flask import current_app
 from pathlib import Path

@@ -196,3 +196,13 @@ class Publisher(db.Model):
 
     def __repr__(self):
         return '{}'.format(self.name)
+
+
+class DocumentLendingLog(db.Model):
+    id = db.Column(db.Integer, db.ForeignKey(Record.id), primary_key=True)
+    count = db.Column(db.Integer)
+    date = db.Column(db.DateTime)
+
+
+    def __repr__(self):
+        return '{}'.format(self.name)

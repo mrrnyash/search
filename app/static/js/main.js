@@ -28,4 +28,17 @@ $(document).ready(function(){
 	});
 });
 
+$(document).ready(function() {
+    $("#report_type").change(function() {
+//        document.write(this.value);
+        if (this.value == 'type_1') {
+            $('#source_database').show();
+        } else if (this.value == 'type_2') {
+            $('#source_database').hide();
+        } else if (this.value == 'type_3') {
+            $('#source_database').hide();
+        }
+    });
+});
+
 

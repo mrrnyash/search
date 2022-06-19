@@ -28,6 +28,7 @@ class Config(object):
     ELASTICSEARCH_URL = os.environ.get('ELASTICSEARCH_URL')
 
     UPLOAD_FOLDER = os.path.join(basedir, os.environ.get('UPLOAD_FOLDER'))
+    REPORT_FOLDER = os.path.join(basedir, os.environ.get('REPORT_FOLDER'))
     ALLOWED_EXTENSIONS = os.environ.get('ALLOWED_EXTENSIONS')
     MAX_CONTENT_LENGTH = 500 * 1024 * 1024
 

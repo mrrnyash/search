@@ -1,16 +1,14 @@
+import os
 from flask import render_template, redirect, url_for, \
-    request, current_app, abort
-from app.main.forms import SearchForm
+    request, current_app, abort, g, send_from_directory
+from app.main.forms import SearchForm, ReportForm
 from app.main import bp
 from flask_login import login_required
-from flask import g
 from app import db
 from werkzeug.utils import secure_filename
-import os
 from app.models import Record, User
 from app.upload import DBLoader
-import time
-
+from app.report import Report
 
 # from multiprocessing import Pool, cpu_count
 
@@ -201,15 +199,6 @@ def search_by_year(year, page=1):
     )
 
 
-@bp.route('/admin')
-@login_required
-def admin():
-    return render_template(
-        'admin.html',
-        title='Консоль администратора',
-    )
-
-
 @bp.route('/control')
 @login_required
 def control():
@@ -219,7 +208,7 @@ def control():
     )
 
 
-@bp.route('/control', methods=['POST'])
+@bp.route('/upload', methods=['GET', 'POST'])
 @login_required
 def upload():
     loader = DBLoader()
@@ -230,18 +219,40 @@ def upload():
             if file_ext not in current_app.config['ALLOWED_EXTENSIONS']:
                 abort(400)
             uploaded_file.save(os.path.join(current_app.config['UPLOAD_FOLDER'], filename))
-    f = open("elapsed_time.txt", "w+")
-    start = time.time()
     loader.upload_to_database()
-    elapsed_time = time.time() - start
-    f.write(time.strftime("%H:%M:%S", time.gmtime(elapsed_time)))
-    f.close()
     errors = loader.get_upload_errors()
     if errors is not None:
-        return render_template('control.html',
-                               title='Панель управления',
+        return render_template('upload.html',
+                               title='Загрузка файлов',
                                errors=errors)
-    return redirect(url_for('main.control'))
+    return render_template('upload.html',
+                           title='Загрузка файлов')
+
+
+@bp.route('/report', methods=['GET', 'POST'])
+@login_required
+def report():
+    form = ReportForm()
+    r = Report()
+
+    if form.validate_on_submit():
+        data = ['This', 'is', 'a', 'test']
+        r.generate(data)
+        send_from_directory(directory=current_app.config['REPORT_FOLDER'], filename='Report.csv')
+        # redirect(url_for('main.report'))
+    return render_template('report.html',
+                           title='Отчет',
+                           form=form
+                           )
+
+
+@bp.route('/admin')
+@login_required
+def admin():
+    return render_template(
+        'admin.html',
+        title='Консоль администратора',
+    )
 
 
 @bp.route('/user/<username>')
